@@ -1,0 +1,66 @@
+.login-container {
+  max-width: 400px;
+  margin: 4rem auto;
+  padding: 2rem;
+}
+
+.login-title {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--accent-primary);
+}
+
+.login-success {
+  color: var(--success-color);
+  margin-bottom: 1rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--success-color);
+}
+
+.login-error {
+  color: var(--error-color);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.login-required {
+  color: red;
+}
+
+.login-password-wrapper {
+  position: relative;
+}
+
+.login-password-input {
+  padding-right: 40px;
+}
+
+.login-eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
+.login-submit-btn {
+  width: 100%;
+}
+
+.login-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.login-register-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+}

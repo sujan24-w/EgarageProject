@@ -1,0 +1,63 @@
+.register-container {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.register-title {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--accent-primary);
+}
+
+.register-error {
+  color: var(--error-color);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.register-required {
+  color: red;
+}
+
+.register-phone-error {
+  color: var(--error-color);
+  margin-top: 0.2rem;
+  display: block;
+}
+
+.register-password-wrapper {
+  position: relative;
+}
+
+.register-password-input {
+  padding-right: 40px;
+}
+
+.register-eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
+.register-submit-btn {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.register-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.register-login-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+}

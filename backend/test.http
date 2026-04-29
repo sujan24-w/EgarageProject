@@ -1,0 +1,63 @@
+### 1. Register User
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "user@example.com",
+  "password": "password123",
+  "role": "user",
+  "phone": "9800000000"
+}
+
+### 2. Register Garage Owner
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Garage Owner",
+  "email": "owner@example.com",
+  "password": "password123",
+  "role": "garage_owner",
+  "phone": "9800000001"
+}
+
+### 3. Login Owner (Copy Token for below reqs)
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "password123"
+}
+
+### 4. Create Garage Profile (Needs Owner Token)
+POST http://localhost:5000/api/garages
+Authorization: Bearer <OWNER_TOKEN>
+Content-Type: application/json
+
+{
+  "name": "Super Fast Garage",
+  "phone": "9812345678",
+  "address": "Kathmandu, Nepal",
+  "coordinates": [85.3240, 27.7172]
+}
+
+### 5. Find Nearby Garages (Test Geospatial Query)
+GET http://localhost:5000/api/garages/nearby?lng=85.32&lat=27.71&maxDistance=5000
+
+### 6. Create Booking (Test Immediate Service - Needs User Token)
+POST http://localhost:5000/api/bookings
+Authorization: Bearer <USER_TOKEN>
+Content-Type: application/json
+
+{
+  "garageId": "<GARAGE_ID_FROM_STEP_4>",
+  "type": "immediate",
+  "issueLocation": {
+    "type": "Point",
+    "coordinates": [85.3220, 27.7150],
+    "address": "Thamel"
+  },
+  "notes": "Flat tire on the main road."
+}

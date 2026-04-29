@@ -1,0 +1,64 @@
+.about-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding-bottom: 4rem;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.about-title {
+  font-size: 3rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.about-title-highlight {
+  color: var(--accent-primary);
+}
+
+.about-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.about-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.about-feature-card {
+  padding: 2rem;
+  text-align: center;
+}
+
+.about-feature-icon {
+  margin: 0 auto 1rem auto;
+}
+
+.about-feature-title {
+  margin-bottom: 0.5rem;
+}
+
+.about-feature-text {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.about-mission-section {
+  padding: 3rem;
+  text-align: center;
+}
+
+.about-mission-text {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  line-height: 1.6;
+}
