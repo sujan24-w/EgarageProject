@@ -18,6 +18,14 @@ const mechanicSchema = new mongoose.Schema(
       type: String, // Cloudinary URL
       default: "",
     },
+    certificate: {
+      type: String, // Cloudinary URL for certificate
+      default: "",
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
       enum: ["available", "busy", "offline"],

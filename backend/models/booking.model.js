@@ -49,6 +49,9 @@ const bookingSchema = new mongoose.Schema(
         default: [0, 0]
       }
     },
+    estimatedCompletionTime: { // estimated time when job will be finished
+      type: Date,
+    },
     vehicleBrand: { type: String },
     vehicleModel: { type: String },
     issueImages: {
@@ -58,9 +61,13 @@ const bookingSchema = new mongoose.Schema(
     notes: {
       type: String,
     },
+    maintenanceReport: { // Report submitted by mechanic after work
+      type: String,
+      default: ""
+    },
     status: {
       type: String,
-      enum: ["pending", "accepted", "in-progress", "completed", "rejected", "cancelled"],
+      enum: ["pending", "accepted", "assigned", "dispatched", "arrived", "in-progress", "maintenance-completed", "work-accepted", "completed", "rejected", "cancelled"],
       default: "pending",
     },
     appointmentDate: { // only used for "standard" booking
@@ -82,7 +89,7 @@ const bookingSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid"],
+      enum: ["pending", "cash_requested", "paid"],
       default: "pending",
     },
     transactionId: {

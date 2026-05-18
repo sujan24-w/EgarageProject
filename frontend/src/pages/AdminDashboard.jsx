@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   // Data State
   const [garages, setGarages] = useState([]);
   const [users, setUsers] = useState([]);
+  const [pendingMechanics, setPendingMechanics] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -23,12 +24,14 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resGarages, resUsers] = await Promise.all([
+      const [resGarages, resUsers, resMechanics] = await Promise.all([
         api.get('/admin/garages'),
-        api.get('/admin/users')
+        api.get('/admin/users'),
+        api.get('/mechanics/pending')
       ]);
       setGarages(resGarages.data);
       setUsers(resUsers.data);
+      setPendingMechanics(resMechanics.data);
     } catch(err) {
       console.error("Admin fetch error", err);
     } finally {
@@ -115,9 +118,10 @@ export default function AdminDashboard() {
     <div className="animate-fade-in" style={{position: 'relative'}}>
       <h2 style={{color: 'var(--accent-primary)', marginBottom: '1.5rem'}}>Platform Admin CMS</h2>
 
-      <div style={{display: 'flex', gap: '1rem', marginBottom: '1.5rem'}}>
-        <button className={tab === 'garages' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('garages')}>Business Network</button>
-        <button className={tab === 'users' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('users')}>Application Users</button>
+      <div style={{display: 'flex', gap: '1rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem'}}>
+        <button className={tab === 'garages' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('garages')} style={{whiteSpace: 'nowrap'}}>Business Network</button>
+        <button className={tab === 'users' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('users')} style={{whiteSpace: 'nowrap'}}>Application Users</button>
+        <button className={tab === 'mechanics' ? 'btn-primary' : 'btn-secondary'} onClick={() => setTab('mechanics')} style={{whiteSpace: 'nowrap'}}>Mechanic Verification</button>
       </div>
 
       <div className="glass-panel" style={{padding: '1.5rem'}}>
@@ -385,6 +389,57 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* MECHANICS VIEW */}
+        {tab === 'mechanics' && (
+          <div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem'}}>
+              <h3>Pending Mechanics Verification</h3>
+            </div>
+            {pendingMechanics.length === 0 ? <p style={{color: 'var(--text-secondary)'}}>No mechanics pending verification.</p> : (
+              <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                {pendingMechanics.map(m => (
+                  <div key={m._id} style={{border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '12px', background: 'var(--bg-secondary)', display: 'flex', flexWrap: 'wrap', gap: '2rem'}}>
+                    <div style={{flex: 1, minWidth: '280px'}}>
+                      <strong style={{fontSize: '1.4rem', color: 'var(--accent-primary)'}}>{m.name}</strong>
+                      <p style={{margin: '0.5rem 0'}}><strong style={{color: 'var(--text-primary)'}}>Phone:</strong> {m.phone}</p>
+                      <p style={{margin: '0.5rem 0'}}><strong style={{color: 'var(--text-primary)'}}>Target Garage:</strong> {m.garageId?.name} ({m.garageId?.phone})</p>
+                      
+                      <button className="btn-primary" style={{marginTop: '1.5rem'}} onClick={async () => {
+                        try {
+                          await api.put(`/mechanics/${m._id}/verify`);
+                          alert("Mechanic Verified and Activated!");
+                          fetchData();
+                        } catch (err) { alert("Failed to verify mechanic: " + (err.response?.data?.message || err.message)); }
+                      }}>
+                        <CheckCircle size={18} style={{marginRight: '0.5rem', verticalAlign: 'middle'}}/>
+                        Approve & Verify Mechanic
+                      </button>
+                    </div>
+                    <div style={{flex: 1, minWidth: '280px', display: 'flex', gap: '1.5rem', flexWrap: 'wrap'}}>
+                      {m.image && (
+                        <div>
+                          <strong style={{display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)'}}>Profile Photo</strong>
+                          <a href={m.image} target="_blank" rel="noreferrer">
+                            <img src={m.image} alt="profile" style={{width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)'}} />
+                          </a>
+                        </div>
+                      )}
+                      {m.certificate && (
+                        <div>
+                          <strong style={{display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)'}}>Certificate / ID</strong>
+                          <a href={m.certificate} target="_blank" rel="noreferrer">
+                            <img src={m.certificate} alt="certificate" style={{width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)'}} />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

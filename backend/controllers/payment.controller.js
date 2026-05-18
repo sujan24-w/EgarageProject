@@ -157,6 +157,29 @@ const getUserReceipts = async (req, res) => {
   }
 };
 
+const getGarageReceipts = async (req, res) => {
+  try {
+    // Assuming req.user is the Garage Owner.
+    // The GarageId is tied to the owner. Let's find the garage first.
+    const Garage = require("../models/garage.model");
+    const garage = await Garage.findOne({ ownerId: req.user._id });
+    if (!garage) return res.status(404).json({ message: "Garage not found for this owner." });
+
+    const receipts = await Receipt.find({ garageId: garage._id })
+      .populate("userId", "name phone")
+      .populate({
+         path: "bookingId",
+         select: "serviceId type appointmentDate vehicleBrand vehicleModel notes",
+         populate: { path: "serviceId", select: "name" }
+      })
+      .sort({ createdAt: -1 });
+
+    res.json(receipts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const getReceiptById = async (req, res) => {
   try {
     const receipt = await Receipt.findById(req.params.id)
@@ -181,9 +204,93 @@ const getReceiptById = async (req, res) => {
   }
 };
 
+// @desc    Request Cash Payment (By User)
+// @route   POST /api/payments/cash/request
+// @access  Private
+const requestCashPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    if (booking.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to pay for this booking" });
+    }
+
+    if (booking.paymentStatus === "paid") {
+      return res.status(400).json({ message: "Booking is already paid natively." });
+    }
+    if (booking.status !== "completed") {
+      return res.status(400).json({ message: "Booking is not completed yet" });
+    }
+
+    booking.paymentStatus = "cash_requested";
+    await booking.save();
+
+    res.json({ message: "Site payment (pay later) requested. Awaiting Garage Owner confirmation." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Confirm Cash Payment (By Garage Owner)
+// @route   POST /api/payments/cash/confirm
+// @access  Private
+const confirmCashPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+    const booking = await Booking.findById(bookingId);
+
+    const Garage = require("../models/garage.model");
+    const garage = await Garage.findOne({ ownerId: req.user._id });
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    if (!garage || booking.garageId.toString() !== garage._id.toString()) {
+      return res.status(403).json({ message: "Only the assigned Garage owner can confirm this payment." });
+    }
+
+    if (booking.paymentStatus === "paid") {
+      return res.status(400).json({ message: "Booking is already paid natively." });
+    }
+    if (booking.paymentStatus !== "cash_requested") {
+      return res.status(400).json({ message: "Cash payment has not been requested by the user." });
+    }
+
+    let amount = booking.totalAmount;
+    if (booking.advanceAmountPaid > 0) {
+      amount = booking.totalAmount - booking.advanceAmountPaid; // Deduct advance
+    }
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount to pay" });
+    }
+
+    booking.paymentStatus = "paid";
+    booking.transactionId = `CASH-${Date.now()}`;
+    await booking.save();
+
+    const receipt = await Receipt.create({
+      userId: booking.userId,
+      garageId: booking.garageId,
+      bookingId: booking._id,
+      costBreakdown: booking.costBreakdown,
+      totalAmount: amount, // The remaining balance paid essentially
+      paymentMethod: "Site Payment",
+      transactionId: booking.transactionId
+    });
+
+    res.json({ message: "Site Payment confirmed & locked.", receiptId: receipt._id });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   initiateEsewaPayment,
   verifyEsewaPayment,
   getUserReceipts,
-  getReceiptById
+  getGarageReceipts,
+  getReceiptById,
+  requestCashPayment,
+  confirmCashPayment
 };

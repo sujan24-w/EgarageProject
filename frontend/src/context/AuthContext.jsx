@@ -10,6 +10,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkUser = async () => {
       const token = localStorage.getItem("token");
+      const mechanicData = localStorage.getItem("mechanicData");
+
       if (token) {
         try {
           const res = await axios.get("http://localhost:5000/api/auth/profile", {
@@ -20,6 +22,8 @@ export const AuthProvider = ({ children }) => {
           console.error("Token invalid", err);
           localStorage.removeItem("token");
         }
+      } else if (mechanicData) {
+        setUser(JSON.parse(mechanicData));
       }
       setLoading(false);
     };
@@ -27,12 +31,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (userData) => {
-    localStorage.setItem("token", userData.token);
+    if (userData.token) {
+      localStorage.setItem("token", userData.token);
+    } else if (userData.role === 'mechanic') {
+      localStorage.setItem("mechanicData", JSON.stringify(userData));
+    }
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("mechanicData");
     setUser(null);
   };
 

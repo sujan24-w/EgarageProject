@@ -22,10 +22,22 @@ export default function PaymentSuccess() {
         const res = await api.post('/payments/esewa/verify', { data });
         setStatus('success');
         setMessage(res.data.message || 'Payment verified securely!');
+        
+        setTimeout(() => {
+          const returnUrl = localStorage.getItem('payment_return_url') || '/my-bookings';
+          localStorage.removeItem('payment_return_url');
+          navigate(returnUrl);
+        }, 3000);
       } catch (err) {
         setStatus('failed');
         setMessage(err.response?.data?.message || 'Verification failed. This transaction may have expired or tampered.');
       }
+    };
+
+    const handleReturn = () => {
+      const returnUrl = localStorage.getItem('payment_return_url') || '/my-bookings';
+      localStorage.removeItem('payment_return_url');
+      navigate(returnUrl);
     };
 
     verifyCallback();
@@ -45,8 +57,8 @@ export default function PaymentSuccess() {
            <CheckCircle size={80} color="#10b981" style={{ margin: '0 auto 1.5rem', display: 'block' }} />
            <h2 style={{ color: '#10b981', marginBottom: '1rem' }}>Payment Successful!</h2>
            <p style={{ color: 'var(--text-secondary)' }}>{message}</p>
-           <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.9rem' }}>A strict digital receipt has been natively captured in your Ledger.</p>
-           <button className="btn-primary" style={{ marginTop: '2rem', width: '100%' }} onClick={() => navigate('/my-bookings')}>Return to Dashboard</button>
+           <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.9rem' }}>A strict digital receipt has been natively captured in your Ledger. Redirecting...</p>
+           <button className="btn-primary" style={{ marginTop: '2rem', width: '100%' }} onClick={handleReturn}>Return Now</button>
          </div>
        )}
        {status === 'failed' && (

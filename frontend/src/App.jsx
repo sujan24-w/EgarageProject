@@ -3,9 +3,12 @@ import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { ThemeContext } from './context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import GarageDashboard from './pages/GarageDashboard';
 import MyBookings from './pages/MyBookings';
 import BookingForm from './pages/BookingForm';
@@ -16,6 +19,8 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFailure from './pages/PaymentFailure';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import MechanicPortal from './pages/MechanicPortal';
+import MechanicProfile from './pages/MechanicProfile';
 
 function App() {
   const { user, loading, logout } = useContext(AuthContext);
@@ -25,6 +30,7 @@ function App() {
 
   return (
     <>
+      <Toaster position="top-right" toastOptions={{ style: { background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' } }} />
       <nav className="nav-header">
         <Link to={user?.role === 'garage_owner' ? '/garage-dashboard' : (user?.role === 'admin' ? '/admin-dashboard' : '/')} style={{ textDecoration: 'none' }}>
             <h2 style={{color: 'var(--accent-primary)', margin: 0}}>E-Garage</h2>
@@ -39,6 +45,7 @@ function App() {
                     {user.role === 'garage_owner' && <Link to="/garage-dashboard" className="nav-link">Dashboard</Link>}
                     {user.role === 'admin' && <Link to="/admin-dashboard" className="nav-link">Admin Panel</Link>}
                     {user.role === 'user' && <Link to="/my-bookings" className="nav-link">Dashboard</Link>}
+                    {user.role === 'mechanic' && <Link to={`/mechanic/${user._id}`} className="nav-link">Dashboard</Link>}
                     <span style={{color: 'var(--text-secondary)', marginLeft: '1rem'}}>Hi, {user.name}</span>
                     <button onClick={logout} className="btn-secondary" style={{padding: '0.4rem 1rem'}}>Logout</button>
                 </>
@@ -60,6 +67,8 @@ function App() {
           <Route path="/" element={user?.role === 'garage_owner' ? <Navigate to="/garage-dashboard" /> : user?.role === 'admin' ? <Navigate to="/admin-dashboard" /> : <Home />} />
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
           <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/explore" element={<ExploreGarages />} />
           <Route path="/garage/:id" element={<GarageDetails />} />
           <Route path="/garage-dashboard" element={user && user.role === 'garage_owner' ? <GarageDashboard /> : <Navigate to="/" />} />
@@ -70,6 +79,8 @@ function App() {
           <Route path="/payment/failure" element={user ? <PaymentFailure /> : <Navigate to="/login" />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/mechanic/:mechanicId" element={<MechanicPortal />} />
+          <Route path="/mechanic-profile/:id" element={<MechanicProfile />} />
         </Routes>
       </main>
     </>

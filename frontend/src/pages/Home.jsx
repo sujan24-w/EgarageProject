@@ -57,6 +57,9 @@ export default function Home() {
   const [isLocating, setIsLocating] = useState(false);
 
   const [searchRadius, setSearchRadius] = useState(1000); // 1km default
+  
+
+
   // Explore logic moved to ExploreGarages.jsx
 
   const fetchNearbyGarages = async (lat, lng, radiusObj) => {
@@ -249,6 +252,8 @@ export default function Home() {
         </div>
 
       </div>
+
+
     </div>
   );
 }

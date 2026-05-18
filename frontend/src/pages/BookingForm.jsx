@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { Truck, Navigation, Calendar, Settings } from 'lucide-react';
+import AppointmentPicker from '../components/AppointmentPicker';
+import Spinner from '../components/Spinner';
+import io from 'socket.io-client';
+import toast from 'react-hot-toast';
 
 export default function BookingForm() {
   const { garageId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('idle'); // 'idle', 'loading', 'success', 'error'
   const [garage, setGarage] = useState(null);
   
   // High-Level Pathway State
@@ -31,6 +36,7 @@ export default function BookingForm() {
   const handleSubmit = async (e, payAdvance = false) => {
     e.preventDefault();
     setLoading(true);
+    setSubmitStatus('loading');
     try {
       let locationData = undefined;
       
@@ -69,16 +75,29 @@ export default function BookingForm() {
          }
 
          document.body.appendChild(form);
+         localStorage.setItem('payment_return_url', window.location.pathname);
          form.submit();
          return; // Interrupted by eSewa redirect hook
       }
 
-      alert(formPath === 'emergency' 
+      setSubmitStatus('success');
+      toast.success(formPath === 'emergency' 
         ? "Emergency SOS Sent! Rescue units are being pinged." 
         : "Appointment confirmed! View it in your dashboard.");
+        
+      // Notify the garage in real-time
+      const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
+      socket.emit("notify_garage", {
+        garageId,
+        message: formPath === 'emergency' ? "🚨 New Emergency Rescue Request!" : "📅 New Standard Appointment Booked!",
+        type: formPath
+      });
+      setTimeout(() => socket.disconnect(), 1000);
+
       navigate('/my-bookings');
     } catch(err) {
-      alert(err.response?.data?.message || 'Dispatch failed. Check connection.');
+      setSubmitStatus('error');
+      toast.error(err.response?.data?.message || 'Dispatch failed. Check connection.');
     } finally {
       setLoading(false);
     }
@@ -106,7 +125,7 @@ export default function BookingForm() {
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
               <Navigation size={30} />
             </div>
-            <strong style={{ fontSize: '1.2rem', color: 'white' }}>Emergency Rescue</strong>
+            <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>Emergency Rescue</strong>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Immediate dispatch or GPS towing services. We'll locate you.</p>
           </button>
 
@@ -119,7 +138,7 @@ export default function BookingForm() {
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
               <Settings size={30} />
             </div>
-            <strong style={{ fontSize: '1.2rem', color: 'white' }}>Standard Appointment</strong>
+            <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>Standard Appointment</strong>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Routine checks, scheduled maintenance, or diagnostics.</p>
           </button>
           
@@ -147,14 +166,14 @@ export default function BookingForm() {
 
            <div className="input-group" style={{background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)', marginBottom: '1.5rem'}}>
              <label className="input-label" style={{color: '#ef4444'}}>Emergency Grid Coordinates</label>
-             <button type="button" className="btn-secondary" style={{width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', background: liveLocation ? '#10b981' : 'transparent', color: liveLocation ? 'white' : 'white', borderColor: liveLocation ? '#10b981' : 'rgba(255,255,255,0.2)'}} onClick={() => {
+             <button type="button" className="btn-secondary" style={{width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', background: liveLocation ? '#10b981' : 'transparent', color: liveLocation ? 'white' : 'var(--text-primary)', borderColor: liveLocation ? '#10b981' : 'var(--border-color)'}} onClick={() => {
                setGeoLocating(true);
                navigator.geolocation.getCurrentPosition(
                  (pos) => { setLiveLocation([pos.coords.longitude, pos.coords.latitude]); setGeoLocating(false); },
                  (err) => { alert('Failed. Check browser location permissions.'); setGeoLocating(false); }
                );
              }}>
-               {geoLocating ? 'Hacking Satellites...' : (liveLocation ? '✓ Physical Coordinates Locked' : '📍 Transmit GPS Coordinates')}
+               {geoLocating ? 'Acquiring GPS Signal...' : (liveLocation ? '✓ GPS Coordinates Locked' : '📍 Upload My GPS Location')}
              </button>
            </div>
 
@@ -188,10 +207,10 @@ export default function BookingForm() {
              </div>
            </div>
 
-           <div className="input-group">
-             <label className="input-label">Preferred Date & Time Placeholder <span style={{color: 'red'}}>*</span></label>
-             <input type="datetime-local" className="input-field" required value={formData.appointmentDate} onChange={e => setFormData({...formData, appointmentDate: e.target.value})} />
-           </div>
+           <AppointmentPicker 
+             garage={garage} 
+             onDateSelect={(dateObj) => setFormData({...formData, appointmentDate: dateObj ? dateObj.toISOString() : ''})} 
+           />
 
            <div className="input-group">
              <label className="input-label">Identified Issue / Description <span style={{color: 'red'}}>*</span></label>
@@ -209,6 +228,9 @@ export default function BookingForm() {
                <button type="submit" className="btn-secondary" style={{ flex: 2 }} disabled={loading}>
                  {loading ? 'Booking...' : 'Skip for now'}
                </button>
+             </div>
+             <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+               <Spinner status={submitStatus} loadingText="Securing Appointment..." successText="Booking Confirmed!" errorText="Failed to Book" />
              </div>
            </div>
 

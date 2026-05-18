@@ -11,6 +11,7 @@ const { Server } = require("socket.io");
 
 // Connect to Database
 connectDB();
+const Booking = require("./models/booking.model");
 
 const app = express();
 const server = http.createServer(app);
@@ -24,15 +25,49 @@ io.on("connection", (socket) => {
 
   socket.on("join_booking", (bookingId) => {
     socket.join(bookingId);
-    console.log(`Socket ${socket.id} joined booking room ${bookingId}`);
   });
 
-  socket.on("update_mechanic_location", (data) => {
-    // data: { bookingId, lat, lng }
+  socket.on("join_user_room", (userId) => {
+    socket.join(`user_${userId}`);
+  });
+
+  socket.on("join_garage_room", (garageId) => {
+    socket.join(`garage_${garageId}`);
+  });
+
+  socket.on("join_mechanic_room", (mechanicId) => {
+    socket.join(`mechanic_${mechanicId}`);
+  });
+
+  socket.on("update_mechanic_location", async (data) => {
     io.to(data.bookingId).emit("mechanic_location_updated", {
       lat: data.lat,
       lng: data.lng
     });
+    // Save last known location to DB for persistence when map is reopened
+    try {
+      await Booking.findByIdAndUpdate(data.bookingId, {
+        "mechanicLocation.coordinates": [data.lng, data.lat]
+      });
+    } catch (err) {
+      console.error("Failed to save mechanic location", err);
+    }
+  });
+
+  // Relays for Notifications
+  socket.on("notify_garage", (data) => {
+    // data: { garageId, message, type }
+    io.to(`garage_${data.garageId}`).emit("incoming_request", data);
+  });
+
+  socket.on("notify_mechanic", (data) => {
+    io.to(`mechanic_${data.mechanicId}`).emit("new_assignment", data);
+  });
+
+  socket.on("notify_status_update", (data) => {
+    // data: { userId, garageId, status, message }
+    if (data.userId) io.to(`user_${data.userId}`).emit("status_update", data);
+    if (data.garageId) io.to(`garage_${data.garageId}`).emit("status_update", data);
   });
 
   socket.on("disconnect", () => {

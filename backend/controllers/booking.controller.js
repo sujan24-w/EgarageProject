@@ -8,6 +8,48 @@ const createBooking = async (req, res) => {
   try {
     const { garageId, serviceId, type, issueLocation, issueImages, notes, appointmentDate, vehicleBrand, vehicleModel } = req.body;
 
+    if (type === "standard") {
+      if (!appointmentDate) return res.status(400).json({ message: "Appointment date is required for standard bookings." });
+      
+      const requestedDate = new Date(appointmentDate);
+      if (requestedDate < new Date()) {
+        return res.status(400).json({ message: "Cannot book an appointment in the past." });
+      }
+
+      const targetGarage = await Garage.findById(garageId);
+      if (!targetGarage) return res.status(404).json({ message: "Garage not found." });
+
+      // Validate closed days
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayName = days[requestedDate.getDay()];
+      if (targetGarage.timing && targetGarage.timing.closedDays && targetGarage.timing.closedDays.includes(dayName)) {
+        return res.status(400).json({ message: `Garage is closed on ${dayName}.` });
+      }
+
+      // Validate open/close times if not 24/7
+      if (targetGarage.timing && !targetGarage.timing.is24_7) {
+        const reqHour = requestedDate.getHours();
+        const reqMin = requestedDate.getMinutes();
+        const reqTimeStr = `${reqHour.toString().padStart(2, '0')}:${reqMin.toString().padStart(2, '0')}`;
+        
+        if (reqTimeStr < targetGarage.timing.openTime || reqTimeStr >= targetGarage.timing.closeTime) {
+          return res.status(400).json({ message: "Requested time is outside garage working hours." });
+        }
+      }
+
+      // Validate double booking (find any booking with exact same date/time)
+      const existingBooking = await Booking.findOne({
+        garageId,
+        type: "standard",
+        appointmentDate: requestedDate,
+        status: { $nin: ["rejected", "cancelled"] }
+      });
+
+      if (existingBooking) {
+        return res.status(400).json({ message: "This time slot is already booked." });
+      }
+    }
+
     const booking = await Booking.create({
       userId: req.user._id,
       garageId,
@@ -20,6 +62,20 @@ const createBooking = async (req, res) => {
       notes,
       appointmentDate: type === "standard" ? appointmentDate : undefined,
     });
+
+    // 2-minute timeout for PENDING bookings
+    setTimeout(async () => {
+      try {
+        const checkBooking = await Booking.findById(booking._id);
+        if (checkBooking && checkBooking.status === "pending") {
+          checkBooking.status = "rejected";
+          checkBooking.notes = (checkBooking.notes || "") + " [Auto-rejected: Garage did not respond within 2 minutes]";
+          await checkBooking.save();
+        }
+      } catch(e) {
+        console.error("Timeout auto-reject error:", e);
+      }
+    }, 2 * 60 * 1000);
 
     res.status(201).json(booking);
   } catch (error) {
@@ -87,14 +143,12 @@ const updateBookingStatus = async (req, res) => {
 
     const updatedBooking = await booking.save();
 
-    // Auto-manage Mechanic availability
-    if (status === "accepted" && mechanicId) {
-      await Mechanic.findByIdAndUpdate(mechanicId, { status: "busy" });
-    }
-    if (status === "completed" || status === "rejected") {
-      if (updatedBooking.mechanicId) {
-        await Mechanic.findByIdAndUpdate(updatedBooking.mechanicId, { status: "available" });
-      }
+    // Mechanics are no longer blindly marked "busy". 
+    // Their availability is now calculated based on active assignments.
+    // Standard bookings for future dates do not block immediate dispatches.
+
+    if (status === "completed" || status === "rejected" || status === "cancelled") {
+      // Logic for cleanup if needed, but we rely on active booking queries now.
     }
 
     res.json(updatedBooking);
@@ -103,4 +157,77 @@ const updateBookingStatus = async (req, res) => {
   }
 };
 
-module.exports = { createBooking, getUserBookings, getGarageBookings, updateBookingStatus };
+// @desc    Get mechanic bookings
+// @route   GET /api/bookings/mechanic/:mechanicId
+// @access  Public
+const getMechanicBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({ mechanicId: req.params.mechanicId })
+      .populate("userId", "name phone")
+      .populate("garageId", "name phone location")
+      .sort("-createdAt");
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update booking status by Mechanic
+// @route   PUT /api/bookings/:id/mechanic
+// @access  Public
+const mechanicUpdateStatus = async (req, res) => {
+  try {
+    const { status, mechanicId, invoiceData, maintenanceReport } = req.body;
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // Simple security: Must match the assigned mechanicId
+    if (booking.mechanicId?.toString() !== mechanicId) {
+      return res.status(403).json({ message: "Not authorized to update this booking" });
+    }
+
+    if (status) booking.status = status;
+    if (maintenanceReport) booking.maintenanceReport = maintenanceReport;
+    const updatedBooking = await booking.save();
+    
+    res.json(updatedBooking);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get booked standard slots for a specific date
+// @route   GET /api/bookings/garage/:garageId/booked-slots?date=YYYY-MM-DD
+// @access  Public
+const getGarageBookedSlots = async (req, res) => {
+  try {
+    const { garageId } = req.params;
+    const { date } = req.query;
+
+    if (!date) return res.status(400).json({ message: "Date is required" });
+
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 1);
+
+    const bookings = await Booking.find({
+      garageId,
+      type: "standard",
+      status: { $nin: ["rejected", "cancelled"] },
+      appointmentDate: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+    }).select("appointmentDate");
+
+    const bookedSlots = bookings.map((b) => b.appointmentDate);
+    res.json(bookedSlots);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createBooking, getUserBookings, getGarageBookings, updateBookingStatus, getMechanicBookings, mechanicUpdateStatus, getGarageBookedSlots };

@@ -2,23 +2,24 @@
 @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
 :root {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #141414;
-  --bg-tertiary: #1f1f1f;
+  --bg-primary: #2d2b2a; /* Deep dark warm greige */
+  --bg-secondary: #3a3836;
+  --bg-tertiary: #484542;
   
-  --accent-primary: #eab308; /* Premium golden yellow */
-  --accent-hover: #facc15;
-  --accent-glow: rgba(234, 179, 8, 0.2);
+  --accent-primary: #8A9A86; /* Sage green */
+  --accent-hover: #A3B18A;
+  --accent-glow: rgba(138, 154, 134, 0.2);
+  --btn-primary-text: #2d2b2a;
   
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
+  --text-primary: #FDFBF7; /* Creamy off-white */
+  --text-secondary: #c2bcb5; /* Warm greige */
   
-  --border-color: #27272a;
+  --border-color: #5c5854;
   --error-color: #ef4444;
   --success-color: #22c55e;
   
-  --glass-bg: rgba(20, 20, 20, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(58, 56, 54, 0.6);
+  --glass-border: rgba(253, 251, 247, 0.05);
 }
 
 * {
@@ -59,7 +60,7 @@ h3 { font-size: 1.5rem; }
 /* Buttons */
 .btn-primary {
   background: var(--accent-primary);
-  color: white;
+  color: var(--btn-primary-text);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
@@ -74,7 +75,7 @@ h3 { font-size: 1.5rem; }
 .btn-primary:hover {
   background: var(--accent-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(234, 179, 8, 0.3);
+  box-shadow: 0 6px 20px var(--accent-glow);
 }
 
 .btn-primary:disabled {
@@ -123,6 +124,7 @@ h3 { font-size: 1.5rem; }
   font-size: 1rem;
   font-family: inherit;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .input-field:focus {
@@ -155,9 +157,11 @@ h3 { font-size: 1.5rem; }
   align-items: center;
   justify-content: space-between;
   padding: 0 2rem;
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -170,9 +174,9 @@ h3 { font-size: 1.5rem; }
 }
 
 .nav-link {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   transition: color 0.2s;
 }
 
@@ -182,18 +186,19 @@ h3 { font-size: 1.5rem; }
 
 /* Light Mode Theme */
 body.light-mode {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
+  --bg-primary: #FDFBF7; /* Creamy off-white */
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F2EFE9; /* Very light greige */
   
-  --accent-primary: #d97706; /* Darker amber for contrast */
-  --accent-hover: #b45309;
-  --accent-glow: rgba(217, 119, 6, 0.2);
+  --accent-primary: #588157; /* Darker sage green */
+  --accent-hover: #4A6D49;
+  --accent-glow: rgba(88, 129, 87, 0.2);
+  --btn-primary-text: #FDFBF7;
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-primary: #3A3530; /* Deep warm greige */
+  --text-secondary: #6E665E; /* Medium warm greige */
   
-  --border-color: #e2e8f0;
+  --border-color: #E5E0D8;
   
   --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(0, 0, 0, 0.05);

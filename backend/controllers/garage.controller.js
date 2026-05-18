@@ -92,6 +92,7 @@ const getNearbyGarages = async (req, res) => {
 };
 
 // @desc    Search garages by name or explore all
+
 // @route   GET /api/garages/search
 // @access  Public
 const searchGarages = async (req, res) => {
