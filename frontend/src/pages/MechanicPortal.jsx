@@ -59,6 +59,31 @@ export default function MechanicPortal() {
     }
   };
 
+  const handleRejectDispatch = async (b) => {
+    try {
+      await api.put(`/bookings/${b._id}/mechanic`, { action: 'reject_assignment', mechanicId });
+      toast.error("Assignment Rejected.");
+      fetchBookings();
+      if (socket) {
+        const uid = typeof b.userId === 'object' ? b.userId._id : b.userId;
+        const gid = typeof b.garageId === 'object' ? b.garageId._id : b.garageId;
+        socket.emit('notify_status_update', { userId: uid, garageId: gid, status: 'accepted', message: 'Mechanic rejected the assignment.' });
+      }
+    } catch (err) {
+      alert("Failed to reject: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleConfirmCash = async (b) => {
+    try {
+      await api.put(`/bookings/${b._id}/mechanic`, { paymentStatus: 'cash_received_by_mechanic', mechanicId });
+      toast.success("Cash marked as received!");
+      fetchBookings();
+    } catch (err) {
+      alert("Failed to confirm cash: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   const handleAcceptDispatch = async (b) => {
     await updateStatus(b._id, 'dispatched');
     setActiveDispatch(b);
@@ -96,7 +121,7 @@ export default function MechanicPortal() {
     }
     setActiveDispatch(null);
     setTrackingSession(null);
-    toast.success("Arrival Confirmed! Please begin service.");
+    toast.success("Arrival marked! Awaiting user confirmation.");
     
     // Emit arrival to users
     const b = bookings.find(x => x._id === bookingId);
@@ -158,9 +183,15 @@ export default function MechanicPortal() {
 
   if (loading) return <div style={{padding: '2rem'}}>Loading Mechanic Portal...</div>;
 
-  const activeBookings = bookings.filter(b => ['assigned', 'dispatched', 'arrived', 'in-progress', 'maintenance-completed'].includes(b.status));
+  const activeBookings = bookings.filter(b => 
+    ['assigned', 'dispatched', 'arrived', 'in-progress', 'maintenance-completed'].includes(b.status) || 
+    b.paymentStatus === 'cash_to_mechanic_requested'
+  );
   // Logic updated: mechanics can now handle parallel jobs (standard + dispatch)
-  const hasActiveDispatch = activeBookings.some(b => ['dispatched', 'arrived', 'in-progress', 'maintenance-completed'].includes(b.status) && (b.type === 'immediate' || b.type === 'towing'));
+  const hasActiveDispatch = activeBookings.some(b => 
+    (['dispatched', 'arrived', 'in-progress', 'maintenance-completed'].includes(b.status) || b.paymentStatus === 'cash_to_mechanic_requested') && 
+    (b.type === 'immediate' || b.type === 'towing')
+  );
 
   return (
     <div className="animate-fade-in" style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -233,9 +264,14 @@ export default function MechanicPortal() {
                      <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)' }}><strong>Notes:</strong> {b.notes || 'None'}</p>
 
                      {b.status === 'assigned' && (
-                        <button className="btn-primary" style={{ width: '100%', background: '#dc2626', borderColor: '#dc2626', padding: '1rem', fontSize: '1.1rem' }} onClick={() => handleAcceptDispatch(b)}>
-                          Acknowledge & Start Dispatch
-                        </button>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                          <button className="btn-primary" style={{ flex: 2, background: '#10b981', borderColor: '#10b981', padding: '1rem', fontSize: '1.1rem' }} onClick={() => handleAcceptDispatch(b)}>
+                            ✓ Accept Assignment
+                          </button>
+                          <button className="btn-secondary" style={{ flex: 1, color: '#ef4444', borderColor: '#ef4444', padding: '1rem', fontSize: '1.1rem' }} onClick={() => handleRejectDispatch(b)}>
+                            ✕ Reject
+                          </button>
+                        </div>
                      )}
 
                       {b.status === 'in-progress' && (
@@ -244,20 +280,36 @@ export default function MechanicPortal() {
                          </button>
                       )}
 
-                      {b.status === 'maintenance-completed' && (
+                      {b.status === 'maintenance-completed' && b.paymentStatus !== 'cash_to_mechanic_requested' && (
                         <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                          ✅ Work Finished. Awaiting User Acceptance...
+                          ✅ Work Finished. Garage generating final invoice...
                         </div>
                       )}
 
-                     {(b.status === 'dispatched' || b.status === 'arrived') && (
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                          <button className="btn-secondary" style={{ flex: 1, borderColor: '#3b82f6', color: '#3b82f6' }} onClick={() => openTracker(b)}>
+                     {b.status === 'dispatched' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          <button className="btn-primary" style={{ width: '100%', background: '#3b82f6', borderColor: '#3b82f6', padding: '1rem', fontSize: '1.1rem' }} onClick={() => handleMarkArrived(b._id)}>
+                            📍 I Have Arrived on Site
+                          </button>
+                          <button className="btn-secondary" style={{ width: '100%', borderColor: '#3b82f6', color: '#3b82f6' }} onClick={() => openTracker(b)}>
                             🔴 Open Navigation Radar
                           </button>
-                           <div style={{ flex: 1, padding: '0.8rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderRadius: '8px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                             ⏳ Awaiting User Arrival Confirmation
-                           </div>
+                        </div>
+                     )}
+
+                     {b.status === 'arrived' && (
+                        <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderRadius: '8px', textAlign: 'center', fontSize: '1rem', fontWeight: 'bold', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                          ⏳ Awaiting User Arrival Confirmation...
+                        </div>
+                     )}
+
+                     {b.paymentStatus === 'cash_to_mechanic_requested' && (
+                        <div style={{ padding: '1rem', marginTop: '1rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px' }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b' }}>💰 Collect Cash Payment</h4>
+                          <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)' }}>User has opted to pay you in cash on-site. Please collect <strong>Rs. {b.totalAmount}</strong>.</p>
+                          <button className="btn-primary" style={{ width: '100%', background: '#f59e0b', borderColor: '#f59e0b' }} onClick={() => handleConfirmCash(b)}>
+                            Confirm Cash Received
+                          </button>
                         </div>
                      )}
                    </div>

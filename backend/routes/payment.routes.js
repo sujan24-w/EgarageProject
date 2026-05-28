@@ -7,12 +7,14 @@ const {
   getGarageReceipts,
   getReceiptById,
   requestCashPayment,
-  confirmCashPayment
+  confirmCashPayment,
+  mechanicConfirmCashPayment
 } = require("../controllers/payment.controller");
 const { isAuthenticated } = require("../middlewares/auth.middleware");
 
 router.post("/esewa/initiate", isAuthenticated, initiateEsewaPayment);
 router.post("/cash/request", isAuthenticated, requestCashPayment);
+router.post("/cash/mechanic-confirm", mechanicConfirmCashPayment);
 router.post("/cash/confirm", isAuthenticated, confirmCashPayment);
 router.post("/esewa/verify", isAuthenticated, verifyEsewaPayment);
 router.get("/receipts", isAuthenticated, getUserReceipts);

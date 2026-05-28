@@ -155,7 +155,7 @@ export default function MyBookings() {
       
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
+      form.action = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form'; 
 
       for (const key in formData) {
         const input = document.createElement('input');
@@ -173,38 +173,38 @@ export default function MyBookings() {
     }
   };
 
-  const handleSitePaymentRequest = async (bookingId) => {
+  const handleSitePaymentRequest = async (bookingId, payTo) => {
     try {
-      if (!window.confirm("Are you sure you want to request 'Site Payment' (Pay later at garage)?")) return;
+      if (!window.confirm(`Are you sure you want to request Cash Payment to ${payTo === 'mechanic' ? 'Mechanic' : 'Garage Owner'}?`)) return;
       const b = bookings.find(x => x._id === bookingId);
-      await api.post('/payments/cash/request', { bookingId });
-      toast.success("Site Payment requested! Awaiting Garage Owner confirmation.");
+      await api.post('/payments/cash/request', { bookingId, payTo });
+      toast.success("Cash Payment requested! Awaiting confirmation.");
       
       if (socket && b && b.garageId) {
         socket.emit('notify_status_update', { 
           garageId: typeof b.garageId === 'object' ? b.garageId._id : b.garageId, 
           status: 'cash_requested', 
-          message: 'Client has requested Site Payment (Pay Later at Garage).' 
+          message: `Client has requested Cash Payment to ${payTo}.` 
         });
       }
       
       fetchData();
     } catch (err) {
-      alert("Site Payment request failed: " + (err.response?.data?.message || err.message));
+      alert("Cash Payment request failed: " + (err.response?.data?.message || err.message));
     }
   };
 
-  const handleMarkArrived = async (bookingId) => {
+  const handleConfirmArrival = async (bookingId) => {
     try {
       const b = bookings.find(x => x._id === bookingId);
-      await api.put(`/bookings/${bookingId}/status`, { status: 'in-progress' });
+      await api.put(`/bookings/${bookingId}/user`, { status: 'in-progress' });
       
       if (socket && b) {
         socket.emit('notify_status_update', {
-          mechanicId: b.mechanicId?._id || b.mechanicId,
+          userId: b.mechanicId?._id || b.mechanicId,
           garageId: b.garageId?._id || b.garageId,
           status: 'in-progress',
-          message: 'User has confirmed your arrival. Work is now in-progress.'
+          message: 'User has confirmed mechanic on-site. Work is now in-progress.'
         });
       }
 
@@ -212,14 +212,14 @@ export default function MyBookings() {
       setTrackingSession(null);
       fetchData();
     } catch (err) {
-      alert("Error marking arrival: " + (err.response?.data?.message || err.message));
+      alert("Error confirming arrival: " + (err.response?.data?.message || err.message));
     }
   };
 
   const cancelBooking = async (id) => {
     if (!window.confirm("Are you sure you want to totally abort this appointment/rescue request?")) return;
     try {
-      await api.put(`/bookings/${id}`, { status: 'cancelled' });
+      await api.put(`/bookings/${id}/user`, { status: 'cancelled' });
       alert("Operation successfully aborted.");
       fetchData();
     } catch (err) {
@@ -480,7 +480,7 @@ export default function MyBookings() {
                               style={{ background: '#10b981', borderColor: '#10b981', width: '100%' }}
                               onClick={async () => {
                                 try {
-                                  await api.put(`/bookings/${b._id}/status`, { status: 'work-accepted' });
+                                  await api.put(`/bookings/${b._id}/user`, { status: 'work-accepted' });
                                   if (socket) {
                                     socket.emit('notify_status_update', {
                                       garageId: b.garageId?._id || b.garageId,
@@ -500,36 +500,59 @@ export default function MyBookings() {
                           </div>
                         )}
 
-                        {b.status === 'work-accepted' && b.paymentStatus === 'pending' && (
-                          <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '3px solid #3b82f6', marginTop: '1rem' }}>
-                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 'bold', color: '#3b82f6' }}>✅ Work Accepted</p>
-                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>You have accepted the repairs. We are now awaiting the garage to generate the final bill/invoice for you.</p>
+                        {b.status === 'work-accepted' && b.paymentStatus === 'pending' && (!b.totalAmount || b.totalAmount <= 0) && (
+                          <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '3px solid #fbbf24', marginTop: '1rem' }}>
+                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 'bold', color: '#fbbf24' }}>⏳ Awaiting Final Invoice</p>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>The garage owner is compiling your final bill. Please wait a moment...</p>
+                          </div>
+                        )}
+
+                        {b.status === 'work-accepted' && b.paymentStatus === 'pending' && b.totalAmount > 0 && (
+                          <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '3px solid #10b981', marginTop: '1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>Final Invoice Generated</p>
+                              <strong style={{ color: 'var(--text-primary)', fontSize: '1.2rem' }}>Total Due: Rs. {b.totalAmount}</strong>
+                            </div>
+                            
+                            {/* Show mechanic vs garage fee split if available */}
+                            {b.mechanicBill && b.mechanicBill.totalAmount > 0 && (
+                              <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                                 <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>Mechanic Work: Rs. {b.mechanicBill.totalAmount}</p>
+                                 <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>Garage Fees: Rs. {b.totalAmount - b.mechanicBill.totalAmount}</p>
+                              </div>
+                            )}
+                            
+                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                              <button className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', color: 'white', flex: 1 }} onClick={() => handleEsewaPayment(b._id)}>💳 Pay via eSewa</button>
+                              <button className="btn-secondary" style={{ border: 'none', flex: 1 }} onClick={() => handleSitePaymentRequest(b._id, 'mechanic')}>💵 Pay Cash to Mechanic</button>
+                              <button className="btn-secondary" style={{ border: 'none', flex: 1 }} onClick={() => handleSitePaymentRequest(b._id, 'owner')}>💵 Pay Cash to Owner</button>
+                            </div>
                           </div>
                         )}
 
                         {(b.status === 'dispatched' || b.status === 'arrived' || b.status === 'in-progress') && (b.type === 'immediate' || b.type === 'towing') && (
-                         <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                         <div style={{display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap'}}>
                            <span style={{color: 'var(--accent-primary)', fontSize: '0.9rem', fontWeight: '500'}}>Mechanic is en-route/arrived!</span>
                            <button className="btn-primary" onClick={() => openTracker(b)} style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}>
                              Open Radar
                            </button>
+                           {b.status === 'arrived' && (
+                             <button className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', padding: '0.4rem 1rem', fontSize: '0.9rem', color: 'white' }} onClick={() => handleConfirmArrival(b._id)}>
+                               ✓ Accept Mechanic On-Site
+                             </button>
+                           )}
                          </div>
                        )}
 
-                       {b.paymentStatus === 'pending' && b.totalAmount > 0 && b.status === 'completed' && (
-                         <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '3px solid #10b981', marginTop: '1rem' }}>
-                           <p style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>Outstanding Balance: Rs. {b.totalAmount}</p>
-                           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                             <button className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', color: 'white' }} onClick={() => handleEsewaPayment(b._id)}>Pay via eSewa</button>
-                             <button className="btn-secondary" style={{ border: 'none' }} onClick={() => handleSitePaymentRequest(b._id)}>Site Payment (Pay Later)</button>
-                           </div>
-                         </div>
-                       )}
-
-                       {b.paymentStatus === 'cash_requested' && b.status === 'completed' && (
+                       {['cash_to_mechanic_requested', 'cash_to_owner_requested', 'cash_received_by_mechanic', 'cash_requested'].includes(b.paymentStatus) && b.status !== 'completed' && (
                          <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '3px solid #f59e0b', marginTop: '1rem' }}>
-                           <p style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 'bold', color: '#f59e0b' }}>⏳ Site Payment Requested</p>
-                           <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Awaiting Garage Owner to confirm receipt of Rs. {b.totalAmount}. The invoice will clear automatically once confirmed.</p>
+                           <p style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 'bold', color: '#f59e0b' }}>⏳ Cash Payment Processing</p>
+                           <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                             {b.paymentStatus === 'cash_to_mechanic_requested' && `Awaiting mechanic to confirm receipt of Rs. ${b.totalAmount}.`}
+                             {b.paymentStatus === 'cash_to_owner_requested' && `Awaiting garage owner to confirm receipt of Rs. ${b.totalAmount}.`}
+                             {b.paymentStatus === 'cash_received_by_mechanic' && `Mechanic confirmed. Awaiting Garage Owner final verification.`}
+                             {b.paymentStatus === 'cash_requested' && `Awaiting confirmation of Rs. ${b.totalAmount}.`}
+                           </p>
                          </div>
                        )}
 
@@ -613,16 +636,16 @@ export default function MyBookings() {
         theme={theme} 
         onClose={() => setTrackingSession(null)} 
         role="user"
-        onMarkArrived={handleMarkArrived} 
+        onMarkArrived={handleConfirmArrival} 
       />
 
       {/* VIEW DETAILS MODAL */}
       {viewingBooking && (
-        <div className="modal-overlay animate-fade-in" style={{zIndex: 100000}} onClick={() => setViewingBooking(null)}>
-          <div className="modal-content" style={{maxWidth: '500px', width: '90%', padding: '2.5rem', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '12px'}} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <h2 style={{color: 'var(--text-primary)', margin: 0, fontSize: '1.5rem'}}>Booking Details</h2>
-              <button onClick={() => setViewingBooking(null)} style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>✕</button>
+        <div className="modal-overlay animate-fade-in" style={{zIndex: 100000, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center'}} onClick={() => setViewingBooking(null)}>
+          <div className="modal-content" style={{maxWidth: '450px', width: '90%', maxHeight: '80vh', overflowY: 'auto', padding: '2rem', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)'}} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 10, paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 style={{color: 'var(--text-primary)', margin: 0, fontSize: '1.4rem'}}>Booking Details</h2>
+              <button onClick={() => setViewingBooking(null)} style={{ background: 'var(--bg-secondary)', border: 'none', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s' }}>✕</button>
             </div>
             
             <div style={{display: 'flex', flexDirection: 'column', gap: '1.2rem'}}>

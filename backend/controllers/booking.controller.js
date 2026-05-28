@@ -136,7 +136,7 @@ const updateBookingStatus = async (req, res) => {
     if (status) booking.status = status;
     if (mechanicId) booking.mechanicId = mechanicId;
     
-    if (status === "completed") {
+    if (status === "completed" || status === "work-accepted") {
       if (costBreakdown) booking.costBreakdown = costBreakdown;
       if (totalAmount !== undefined) booking.totalAmount = totalAmount;
     }
@@ -188,7 +188,23 @@ const mechanicUpdateStatus = async (req, res) => {
     }
 
     if (status) booking.status = status;
+    if (req.body.paymentStatus) booking.paymentStatus = req.body.paymentStatus;
     if (maintenanceReport) booking.maintenanceReport = maintenanceReport;
+    
+    // If mechanic rejects assignment, revert status to accepted and clear mechanicId
+    if (req.body.action === 'reject_assignment') {
+      booking.status = 'accepted';
+      booking.mechanicId = null;
+    }
+    
+    // If mechanic completes the job, they can submit an initial bill
+    if (status === "completed" && invoiceData) {
+      booking.mechanicBill = {
+        totalAmount: invoiceData.totalAmount || 0,
+        details: invoiceData.details || ""
+      };
+    }
+
     const updatedBooking = await booking.save();
     
     res.json(updatedBooking);
@@ -230,4 +246,35 @@ const getGarageBookedSlots = async (req, res) => {
   }
 };
 
-module.exports = { createBooking, getUserBookings, getGarageBookings, updateBookingStatus, getMechanicBookings, mechanicUpdateStatus, getGarageBookedSlots };
+// @desc    Update booking status by User
+// @route   PUT /api/bookings/:id/user
+// @access  Private (User)
+const userUpdateBooking = async (req, res) => {
+  try {
+    const { status, paymentStatus } = req.body;
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // Verify ownership
+    if (booking.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to update this booking" });
+    }
+
+    if (status) {
+      // Allow user to accept maintenance work after mechanic completion.
+      if (status === 'work-accepted' && booking.status === 'maintenance-completed') {
+        booking.paymentStatus = booking.paymentStatus || 'pending';
+      }
+      booking.status = status;
+    }
+    if (paymentStatus) booking.paymentStatus = paymentStatus;
+
+    const updatedBooking = await booking.save();
+    res.json(updatedBooking);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createBooking, getUserBookings, getGarageBookings, updateBookingStatus, getMechanicBookings, mechanicUpdateStatus, getGarageBookedSlots, userUpdateBooking };

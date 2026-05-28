@@ -16,7 +16,8 @@ const ForgotPassword = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/forgotpassword', { email });
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await axios.post(`${apiUrl}/auth/forgotpassword`, { email });
       setMessage(response.data.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');

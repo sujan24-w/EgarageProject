@@ -28,6 +28,7 @@ export default function BookingForm() {
   
   const [geoLocating, setGeoLocating] = useState(false);
   const [liveLocation, setLiveLocation] = useState(null);
+  const [skipPayment, setSkipPayment] = useState(false);
 
   useEffect(() => {
     api.get(`/garages/${garageId}`).then(res => setGarage(res.data)).catch(err => console.error(err));
@@ -38,7 +39,7 @@ export default function BookingForm() {
     setLoading(true);
     setSubmitStatus('loading');
     try {
-      let locationData = undefined;
+      let locationData = undefined; 
       
       if (formPath === 'emergency') {
         if (!liveLocation) {
@@ -168,10 +169,14 @@ export default function BookingForm() {
              <label className="input-label" style={{color: '#ef4444'}}>Emergency Grid Coordinates</label>
              <button type="button" className="btn-secondary" style={{width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', background: liveLocation ? '#10b981' : 'transparent', color: liveLocation ? 'white' : 'var(--text-primary)', borderColor: liveLocation ? '#10b981' : 'var(--border-color)'}} onClick={() => {
                setGeoLocating(true);
-               navigator.geolocation.getCurrentPosition(
-                 (pos) => { setLiveLocation([pos.coords.longitude, pos.coords.latitude]); setGeoLocating(false); },
-                 (err) => { alert('Failed. Check browser location permissions.'); setGeoLocating(false); }
-               );
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => { setLiveLocation([pos.coords.longitude, pos.coords.latitude]); setGeoLocating(false); },
+                  (err) => { 
+                    alert('GPS failed/blocked. Defaulting to Kathmandu Center coordinates so you can test the dispatch!'); 
+                    setLiveLocation([85.3240, 27.7172]); 
+                    setGeoLocating(false); 
+                  }
+                );
              }}>
                {geoLocating ? 'Acquiring GPS Signal...' : (liveLocation ? '✓ GPS Coordinates Locked' : '📍 Upload My GPS Location')}
              </button>
@@ -225,10 +230,20 @@ export default function BookingForm() {
                <button type="button" onClick={(e) => handleSubmit(e, true)} className="btn-primary" style={{ flex: 3, background: '#10b981', borderColor: '#10b981', color: 'white' }} disabled={loading}>
                  Pay Rs. 500 Advance
                </button>
-               <button type="submit" className="btn-secondary" style={{ flex: 2 }} disabled={loading}>
-                 {loading ? 'Booking...' : 'Skip for now'}
+               <button type="button" onClick={() => setSkipPayment(true)} className="btn-secondary" style={{ flex: 2 }} disabled={loading || skipPayment}>
+                 Skip Payment
                </button>
              </div>
+             
+             {skipPayment && (
+               <div className="animate-fade-in" style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                 <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>You opted to skip the advance. Please confirm your booking.</p>
+                 <button type="submit" className="btn-primary" style={{ width: '100%', background: '#3b82f6', borderColor: '#3b82f6' }} disabled={loading}>
+                   {loading ? 'Securing Appointment...' : 'Confirm Booking'}
+                 </button>
+               </div>
+             )}
+
              <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
                <Spinner status={submitStatus} loadingText="Securing Appointment..." successText="Booking Confirmed!" errorText="Failed to Book" />
              </div>

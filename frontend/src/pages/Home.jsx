@@ -96,11 +96,12 @@ export default function Home() {
           fetchNearbyGarages(lat, lng, searchRadius);
         },
         (err) => {
-          console.warn("Location permission denied. Using default or last known.");
+          alert('GPS failed/blocked. Defaulting to Kathmandu Center coordinates so you can test the dispatch!');
+          setLocation({ lat: 27.7172, lng: 85.3240 });
           setIsLocating(false);
           setShowMap(true);
           setIsScanning(true);
-          fetchNearbyGarages(location.lat, location.lng, searchRadius);
+          fetchNearbyGarages(27.7172, 85.3240, searchRadius);
         }
       );
     } else {

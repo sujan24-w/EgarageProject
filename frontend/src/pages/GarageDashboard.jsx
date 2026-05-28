@@ -43,6 +43,8 @@ function LocationMarker({ coordinates, setCoordinates }) {
 export default function GarageDashboard() {
   const { user } = useContext(AuthContext);
   const [tab, setTab] = useState('overview'); // overview, bookings, history, profile, mechanics, reviews
+  const [liveActionFilter, setLiveActionFilter] = useState('all');
+  const [historyFilter, setHistoryFilter] = useState('all');
   const [myGarage, setMyGarage] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [mechanicsList, setMechanicsList] = useState([]);
@@ -99,13 +101,27 @@ export default function GarageDashboard() {
     });
 
     newSocket.on('incoming_request', (data) => {
-        toast.success(data.message || 'New request arrived!', { icon: '🚨' });
+        if (data.type === 'emergency') {
+            toast(data.message || 'New emergency request arrived!', { 
+                icon: '🚨', 
+                duration: 8000,
+                style: { background: '#fee2e2', color: '#dc2626', border: '1px solid #dc2626', fontWeight: 'bold' }
+            });
+        } else {
+            toast(data.message || 'New standard appointment booked!', { 
+                icon: '📅', 
+                duration: 6000,
+                style: { background: '#dbeafe', color: '#2563eb', border: '1px solid #2563eb', fontWeight: 'bold' }
+            });
+        }
         fetchDashboardData(); // Refreshes the queue
     });
 
     newSocket.on('status_update', (data) => {
         if (data.status === 'cash_requested') {
           toast.success(data.message || 'New Site Payment approval request!', { icon: '💰', duration: 6000 });
+        } else if (data.status === 'mechanic_registered') {
+          toast.success(data.message || 'New Mechanic Registration!', { icon: '🧑‍🔧', duration: 8000, style: { background: '#fef3c7', color: '#d97706', border: '1px solid #d97706', fontWeight: 'bold' } });
         }
         fetchDashboardData();
     });
@@ -156,40 +172,27 @@ export default function GarageDashboard() {
     }
   };
 
-  const simulateMechanicMovement = (booking) => {
-    if (!socket || !myGarage) return alert("Socket unconnected or Garage untethered.");
-    if (booking.type === 'standard') return; // only live track emergencies
 
-    const gLng = myGarage.location.coordinates[0];
-    const gLat = myGarage.location.coordinates[1];
-    
-    // Fallback if issue location absent
-    const uLng = booking.issueLocation?.coordinates[0] || gLng;
-    const uLat = booking.issueLocation?.coordinates[1] || gLat;
 
-    let step = 0;
-    const totalSteps = 20;
-    
-    alert("📡 Initiating Advanced Tracker: Dispatching Mechanic to Target coordinates...");
-    
-    const intervalId = setInterval(() => {
-      if (step >= totalSteps) {
-        clearInterval(intervalId);
-        alert("📍 Tracked unit has physically arrived at User GPS coordinates. You may mark 'Mechanic Arrived' now.");
-        return;
+  const handleConfirmCash = async (id) => {
+    try {
+      const b = bookings.find(x => x._id === id);
+      await api.post('/payments/cash/confirm', { bookingId: id });
+      toast.success("Payment confirmed and booking finalized.");
+      
+      if (socket && b) {
+        const uid = typeof b.userId === 'object' ? b.userId._id : b.userId;
+        socket.emit('notify_status_update', { 
+          userId: uid, 
+          status: 'paid', 
+          message: 'Garage has confirmed your Cash payment! Your booking is now complete.' 
+        });
       }
       
-      step++;
-      const progress = step / totalSteps;
-      const currentLng = gLng + (uLng - gLng) * progress;
-      const currentLat = gLat + (uLat - gLat) * progress;
-
-      socket.emit('update_mechanic_location', {
-        bookingId: booking._id,
-        lng: currentLng,
-        lat: currentLat
-      });
-    }, 1000); // Emits every 1 second
+      fetchDashboardData();
+    } catch (err) {
+      alert("Failed to confirm cash: " + (err.response?.data?.message || err.message));
+    }
   };
 
   const openTracker = (b) => {
@@ -423,8 +426,8 @@ export default function GarageDashboard() {
 
   if (loading) return <div>Loading Dashboard...</div>;
 
-  const emergencyBookings = bookings.filter(b => (b.type === 'immediate' || b.type === 'towing') && (b.status === 'pending' || b.status === 'accepted' || b.status === 'assigned' || b.status === 'dispatched' || b.status === 'arrived' || b.status === 'in-progress'));
-  const standardBookings = bookings.filter(b => b.type === 'standard' && (b.status === 'pending' || b.status === 'accepted' || b.status === 'in-progress'));
+  const emergencyBookings = bookings.filter(b => (b.type === 'immediate' || b.type === 'towing') && ['pending', 'accepted', 'assigned', 'dispatched', 'arrived', 'in-progress', 'maintenance-completed', 'work-accepted'].includes(b.status));
+  const standardBookings = bookings.filter(b => b.type === 'standard' && ['pending', 'accepted', 'assigned', 'dispatched', 'arrived', 'in-progress', 'maintenance-completed', 'work-accepted'].includes(b.status));
 
   return (
     <div  className="animate-fade-in" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -434,11 +437,18 @@ export default function GarageDashboard() {
         <button className={tab === 'overview' ? 'btn-primary' : 'btn-secondary'} style={{textAlign: 'left', width: '100%', padding: '0.8rem 1rem', border: 'none', background: tab === 'overview' ? 'var(--bg-secondary)' : 'transparent', color: tab === 'overview' ? 'var(--accent-primary)' : 'var(--text-primary)', fontWeight: tab === 'overview' ? '600' : '400'}} onClick={() => setTab('overview')}>Overview</button>
         <button className={tab === 'bookings' ? 'btn-primary' : 'btn-secondary'} style={{textAlign: 'left', width: '100%', padding: '0.8rem 1rem', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: tab === 'bookings' ? 'var(--bg-secondary)' : 'transparent', color: tab === 'bookings' ? 'var(--accent-primary)' : 'var(--text-primary)', fontWeight: tab === 'bookings' ? '600' : '400'}} onClick={() => setTab('bookings')}>
           <span>Live Action Requests</span>
-          {emergencyBookings.filter(b => b.status === 'pending').length > 0 && (
-            <span style={{background: '#ef4444', color: 'white', fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 'bold'}}>
-              {emergencyBookings.filter(b => b.status === 'pending').length} New
-            </span>
-          )}
+          <div style={{display: 'flex', gap: '0.3rem'}}>
+            {emergencyBookings.filter(b => b.status === 'pending').length > 0 && (
+              <span style={{background: '#ef4444', color: 'white', fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 'bold'}} title="New Emergency Requests">
+                {emergencyBookings.filter(b => b.status === 'pending').length} 🚨
+              </span>
+            )}
+            {standardBookings.filter(b => b.status === 'pending').length > 0 && (
+              <span style={{background: '#3b82f6', color: 'white', fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '10px', fontWeight: 'bold'}} title="New Standard Appointments">
+                {standardBookings.filter(b => b.status === 'pending').length} 📅
+              </span>
+            )}
+          </div>
         </button>
         <button className={tab === 'history' ? 'btn-primary' : 'btn-secondary'} style={{textAlign: 'left', width: '100%', padding: '0.8rem 1rem', border: 'none', background: tab === 'history' ? 'var(--bg-secondary)' : 'transparent', color: tab === 'history' ? 'var(--accent-primary)' : 'var(--text-primary)', fontWeight: tab === 'history' ? '600' : '400'}} onClick={() => setTab('history')}>Rescue History</button>
         <button className={tab === 'receipts' ? 'btn-primary' : 'btn-secondary'} style={{textAlign: 'left', width: '100%', padding: '0.8rem 1rem', border: 'none', background: tab === 'receipts' ? 'var(--bg-secondary)' : 'transparent', color: tab === 'receipts' ? 'var(--accent-primary)' : 'var(--text-primary)', fontWeight: tab === 'receipts' ? '600' : '400'}} onClick={() => setTab('receipts')}>Payment Ledgers</button>
@@ -548,12 +558,20 @@ export default function GarageDashboard() {
 
         {tab === 'bookings' && (
           <div className="animate-fade-in">
-            <h2 style={{borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem'}}>Action Center</h2>
+            <h2 style={{borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              Action Center
+              <select className="input-field" style={{width: 'auto', margin: 0, padding: '0.4rem 1rem', fontSize: '0.9rem', borderRadius: '20px'}} value={liveActionFilter} onChange={e => setLiveActionFilter(e.target.value)}>
+                <option value="all">All Requests</option>
+                <option value="emergency">🚨 Emergency Only</option>
+                <option value="standard">📅 Standard Booking Only</option>
+              </select>
+            </h2>
             
             {/* EMERGENCY QUEUE */}
-            <div style={{marginTop: '2rem'}}>
-              <h3 style={{color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>🚨 Emergency Response Queue</h3>
-              {emergencyBookings.length === 0 ? <p style={{color: 'var(--text-secondary)'}}>No active emergency broadcasts.</p> : (
+            {(liveActionFilter === 'all' || liveActionFilter === 'emergency') && (
+              <div style={{marginTop: '2rem'}}>
+                <h3 style={{color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>🚨 Emergency Response Queue</h3>
+                {emergencyBookings.length === 0 ? <p style={{color: 'var(--text-secondary)'}}>No active emergency broadcasts.</p> : (
                 <div style={{marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                   {emergencyBookings.map(b => (
                     <div key={b._id} style={{
@@ -598,14 +616,8 @@ export default function GarageDashboard() {
                       
                       {(b.status === 'assigned' || b.status === 'dispatched' || b.status === 'arrived') && (
                         <div style={{marginTop: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid rgba(220, 38, 38, 0.1)', paddingTop: '1rem'}}>
-                          <p style={{color: 'var(--accent-primary)', fontWeight: 'bold', width: '100%'}}>Status: {b.status === 'assigned' ? 'PENDING MECHANIC ACCEPTANCE' : b.status.toUpperCase()}</p>
+                          <p style={{color: 'var(--accent-primary)', fontWeight: 'bold', width: '100%'}}>Status: {b.status === 'assigned' ? 'PENDING MECHANIC ACCEPTANCE' : b.status === 'arrived' ? 'MECHANIC ON LOCATION' : b.status.toUpperCase()}</p>
                           <button className="btn-secondary" style={{borderColor: '#3b82f6', color: '#3b82f6'}} onClick={() => openTracker(b)}>🔴 View Live Radar Route</button>
-                          {b.status === 'dispatched' && (
-                            <button className="btn-secondary" style={{borderColor: '#10b981', color: '#10b981'}} onClick={() => simulateMechanicMovement(b)}>📡 Simulate Mechanic GPS Ping</button>
-                          )}
-                          {(b.status === 'dispatched' || b.status === 'arrived') && (
-                            <button className="btn-primary" style={{background: '#fbbf24', borderColor: '#fbbf24', color: 'black'}} onClick={() => updateStatus(b._id, 'in-progress')}>Mark Service In-Progress</button>
-                          )}
                         </div>
                       )}
 
@@ -622,8 +634,25 @@ export default function GarageDashboard() {
                       )}
                       {b.status === 'work-accepted' && (
                         <div style={{marginTop: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #3b82f6', paddingTop: '1rem'}}>
-                          <p style={{color: '#3b82f6', fontWeight: 'bold', width: '100%'}}>🤝 User has accepted the work. Ready for Invoicing.</p>
-                          <button className="btn-primary" style={{background: '#3b82f6', borderColor: '#3b82f6'}} onClick={() => setCompletingBooking(b)}>Issue Final Invoice</button>
+                          <p style={{color: '#3b82f6', fontWeight: 'bold', width: '100%'}}>
+                            {b.totalAmount > 0 ? `🤝 Invoice compiled (Rs. ${b.totalAmount}). You can edit/update if needed.` : '🤝 User has accepted the work. Ready for Invoicing.'}
+                          </p>
+                          <button className="btn-primary" style={{background: '#3b82f6', borderColor: '#3b82f6'}} onClick={() => setCompletingBooking(b)}>
+                            {b.totalAmount > 0 ? 'Edit/Update Invoice' : 'Issue Final Invoice'}
+                          </button>
+                        </div>
+                      )}
+
+                      {['cash_to_owner_requested', 'cash_received_by_mechanic', 'cash_requested'].includes(b.paymentStatus) && b.status !== 'completed' && (
+                        <div style={{marginTop: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #f59e0b', paddingTop: '1rem'}}>
+                          <p style={{color: '#f59e0b', fontWeight: 'bold', width: '100%'}}>
+                            {b.paymentStatus === 'cash_to_owner_requested' && `💰 Cash Payment Request: User wants to pay you directly. Collect Rs. ${b.totalAmount}.`}
+                            {b.paymentStatus === 'cash_received_by_mechanic' && `✅ Mechanic collected Rs. ${b.totalAmount}.`}
+                            {b.paymentStatus === 'cash_requested' && `💰 Payment Pending: Site Payment Requested (Rs. ${b.totalAmount})`}
+                          </p>
+                          <button className="btn-primary" style={{background: '#f59e0b', borderColor: '#f59e0b'}} onClick={() => handleConfirmCash(b._id)}>
+                            {b.paymentStatus === 'cash_received_by_mechanic' ? 'Finalize & Complete Booking' : 'Confirm Cash Received'}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -631,11 +660,13 @@ export default function GarageDashboard() {
                 </div>
               )}
             </div>
+            )}
 
             {/* STANDARD QUEUE */}
-            <div style={{marginTop: '3rem'}}>
-              <h3 style={{color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>📅 Standard Service Appointments</h3>
-              {standardBookings.length === 0 ? <p style={{color: 'var(--text-secondary)'}}>No incoming routine appointments.</p> : (
+            {(liveActionFilter === 'all' || liveActionFilter === 'standard') && (
+              <div style={{marginTop: '3rem'}}>
+                <h3 style={{color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>📅 Standard Service Appointments</h3>
+                {standardBookings.length === 0 ? <p style={{color: 'var(--text-secondary)'}}>No incoming routine appointments.</p> : (
                 <div style={{marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                   {standardBookings.map(b => (
                     <div key={b._id} style={{border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', background: 'var(--bg-secondary)'}}>
@@ -683,8 +714,25 @@ export default function GarageDashboard() {
                       )}
                       {b.status === 'work-accepted' && (
                         <div style={{marginTop: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center'}}>
-                          <p style={{color: '#3b82f6', fontWeight: 'bold', width: '100%'}}>🤝 User Approved. Build Final Bill.</p>
-                          <button className="btn-primary" style={{background: '#3b82f6', borderColor: '#3b82f6'}} onClick={() => setCompletingBooking(b)}>Generate Invoice</button>
+                          <p style={{color: '#3b82f6', fontWeight: 'bold', width: '100%'}}>
+                            {b.totalAmount > 0 ? `🤝 Invoice compiled (Rs. ${b.totalAmount}). You can edit/update if needed.` : '🤝 User Approved. Build Final Bill.'}
+                          </p>
+                          <button className="btn-primary" style={{background: '#3b82f6', borderColor: '#3b82f6'}} onClick={() => setCompletingBooking(b)}>
+                            {b.totalAmount > 0 ? 'Edit/Update Invoice' : 'Generate Invoice'}
+                          </button>
+                        </div>
+                      )}
+
+                      {['cash_to_owner_requested', 'cash_received_by_mechanic', 'cash_requested'].includes(b.paymentStatus) && b.status !== 'completed' && (
+                        <div style={{marginTop: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #f59e0b', paddingTop: '1rem'}}>
+                          <p style={{color: '#f59e0b', fontWeight: 'bold', width: '100%'}}>
+                            {b.paymentStatus === 'cash_to_owner_requested' && `💰 Cash Payment Request: User wants to pay you directly. Collect Rs. ${b.totalAmount}.`}
+                            {b.paymentStatus === 'cash_received_by_mechanic' && `✅ Mechanic collected Rs. ${b.totalAmount}.`}
+                            {b.paymentStatus === 'cash_requested' && `💰 Payment Pending: Site Payment Requested (Rs. ${b.totalAmount})`}
+                          </p>
+                          <button className="btn-primary" style={{background: '#f59e0b', borderColor: '#f59e0b'}} onClick={() => handleConfirmCash(b._id)}>
+                            {b.paymentStatus === 'cash_received_by_mechanic' ? 'Finalize & Complete Booking' : 'Confirm Cash Received'}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -692,6 +740,7 @@ export default function GarageDashboard() {
                 </div>
               )}
             </div>
+            )}
 
             <div style={{marginTop: '4rem'}}>
                   <h4 style={{color: 'var(--text-secondary)', marginBottom: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem'}}>Active Fleet Overview</h4>
@@ -977,13 +1026,21 @@ export default function GarageDashboard() {
 
         {tab === 'history' && (
           <div>
-            <h3>Rescue History Ledger</h3>
+            <h3 style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              Rescue History Ledger
+              <select className="input-field" style={{width: 'auto', margin: 0, padding: '0.4rem 1rem', fontSize: '0.9rem', borderRadius: '20px', fontWeight: 'normal'}} value={historyFilter} onChange={e => setHistoryFilter(e.target.value)}>
+                <option value="all">All Records</option>
+                <option value="immediate">🚨 Immediate Request</option>
+                <option value="towing">🚜 Towing Service</option>
+                <option value="standard">📅 Standard Booking</option>
+              </select>
+            </h3>
             <p style={{color: 'var(--text-secondary)', marginBottom: '1.5rem'}}>Archive of all completed services and rejected requests.</p>
-            {bookings.filter(b => b.status === 'completed' || b.status === 'rejected').length === 0 ? <p style={{color: 'var(--text-secondary)'}}>No historical records.</p> : (
+            {bookings.filter(b => (b.status === 'completed' || b.status === 'rejected') && (historyFilter === 'all' || b.type === historyFilter)).length === 0 ? <p style={{color: 'var(--text-secondary)'}}>No historical records found for this filter.</p> : (
               <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                {bookings.filter(b => b.status === 'completed' || b.status === 'rejected').map(b => (
-                  <div key={b._id} style={{border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', background: 'var(--bg-secondary)', opacity: 0.85}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                {bookings.filter(b => (b.status === 'completed' || b.status === 'rejected') && (historyFilter === 'all' || b.type === historyFilter)).map(b => (
+                    <div key={b._id} style={{border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', background: 'var(--bg-secondary)', opacity: 0.85}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between'}}>
                       <strong>{b.type.toUpperCase()} Protocol</strong>
                       <span style={{color: b.status === 'rejected' ? 'var(--error-color)' : 'var(--success-color)'}}>{b.status.toUpperCase()}</span>
                     </div>
@@ -1135,12 +1192,12 @@ export default function GarageDashboard() {
                   costBreakdown.push({ item: 'Garage Discount Applied', price: -Math.abs(discount) });
                }
 
-               updateStatus(completingBooking._id, 'completed', null, { 
+               updateStatus(completingBooking._id, 'work-accepted', null, { 
                  totalAmount: finalTotal, // the backend payment route deducts advance natively on top of this later.
                  costBreakdown: costBreakdown 
                });
                
-               alert("Detailed Invoice Submitted & Route Completed! Mechanic Restored to Base.");
+               alert("Detailed Invoice Submitted! Awaiting User Payment.");
                setCompletingBooking(null);
                setInvoiceItems([{ name: '', price: '' }]);
                setInvoiceDiscount('');

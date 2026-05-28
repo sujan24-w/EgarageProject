@@ -30,8 +30,8 @@ const initiateEsewaPayment = async (req, res) => {
       if (booking.paymentStatus === "paid") {
         return res.status(400).json({ message: "Booking is already paid natively." });
       }
-      if (booking.status !== "completed") {
-        return res.status(400).json({ message: "Booking is not completed yet" });
+      if (booking.status !== "work-accepted") {
+        return res.status(400).json({ message: "Booking is not ready for final payment yet." });
       }
       if (booking.advanceAmountPaid > 0) {
         amount = booking.totalAmount - booking.advanceAmountPaid; // Deduct advance
@@ -120,6 +120,7 @@ const verifyEsewaPayment = async (req, res) => {
       }
 
       booking.paymentStatus = "paid";
+      booking.status = "completed";
       booking.transactionId = parsedData.transaction_code;
       await booking.save();
 
@@ -209,7 +210,7 @@ const getReceiptById = async (req, res) => {
 // @access  Private
 const requestCashPayment = async (req, res) => {
   try {
-    const { bookingId } = req.body;
+    const { bookingId, payTo } = req.body; // payTo can be 'owner' or 'mechanic'
     const booking = await Booking.findById(bookingId);
 
     if (!booking) return res.status(404).json({ message: "Booking not found" });
@@ -220,14 +221,46 @@ const requestCashPayment = async (req, res) => {
     if (booking.paymentStatus === "paid") {
       return res.status(400).json({ message: "Booking is already paid natively." });
     }
-    if (booking.status !== "completed") {
-      return res.status(400).json({ message: "Booking is not completed yet" });
+    if (booking.status !== "work-accepted") {
+      return res.status(400).json({ message: "Booking is not ready for payment yet" });
     }
 
-    booking.paymentStatus = "cash_requested";
+    if (payTo === "mechanic") {
+      booking.paymentStatus = "cash_to_mechanic_requested";
+    } else {
+      booking.paymentStatus = "cash_to_owner_requested";
+    }
     await booking.save();
 
-    res.json({ message: "Site payment (pay later) requested. Awaiting Garage Owner confirmation." });
+    res.json({ message: "Site payment (pay later) requested. Awaiting confirmation." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Confirm Cash Payment Received (By Mechanic)
+// @route   POST /api/payments/cash/mechanic-confirm
+// @access  Public
+const mechanicConfirmCashPayment = async (req, res) => {
+  try {
+    const { bookingId, mechanicId } = req.body;
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // Simple security: Must match the assigned mechanicId
+    if (booking.mechanicId?.toString() !== mechanicId) {
+      return res.status(403).json({ message: "Not authorized to confirm payment for this booking" });
+    }
+
+    if (booking.paymentStatus !== "cash_to_mechanic_requested") {
+      return res.status(400).json({ message: "Cash payment to mechanic has not been requested." });
+    }
+
+    booking.paymentStatus = "cash_received_by_mechanic";
+    await booking.save();
+
+    res.json({ message: "Cash payment confirmed by mechanic. Awaiting Garage Owner final approval." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -252,8 +285,9 @@ const confirmCashPayment = async (req, res) => {
     if (booking.paymentStatus === "paid") {
       return res.status(400).json({ message: "Booking is already paid natively." });
     }
-    if (booking.paymentStatus !== "cash_requested") {
-      return res.status(400).json({ message: "Cash payment has not been requested by the user." });
+    // Accept either direct to owner request, or if mechanic has already confirmed receipt
+    if (booking.paymentStatus !== "cash_to_owner_requested" && booking.paymentStatus !== "cash_received_by_mechanic" && booking.paymentStatus !== "cash_requested") {
+      return res.status(400).json({ message: "Valid cash payment request not found." });
     }
 
     let amount = booking.totalAmount;
@@ -261,11 +295,12 @@ const confirmCashPayment = async (req, res) => {
       amount = booking.totalAmount - booking.advanceAmountPaid; // Deduct advance
     }
 
-    if (!amount || amount <= 0) {
+    if (amount === undefined || amount < 0) {
       return res.status(400).json({ message: "Invalid amount to pay" });
     }
 
     booking.paymentStatus = "paid";
+    booking.status = "completed";
     booking.transactionId = `CASH-${Date.now()}`;
     await booking.save();
 
@@ -292,5 +327,6 @@ module.exports = {
   getGarageReceipts,
   getReceiptById,
   requestCashPayment,
+  mechanicConfirmCashPayment,
   confirmCashPayment
 };

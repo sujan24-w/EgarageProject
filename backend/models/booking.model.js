@@ -61,6 +61,10 @@ const bookingSchema = new mongoose.Schema(
     notes: {
       type: String,
     },
+    mechanicBill: {
+      totalAmount: { type: Number, default: 0 },
+      details: { type: String, default: "" }
+    },
     maintenanceReport: { // Report submitted by mechanic after work
       type: String,
       default: ""
@@ -89,7 +93,7 @@ const bookingSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "cash_requested", "paid"],
+      enum: ["pending", "cash_requested", "cash_to_owner_requested", "cash_to_mechanic_requested", "cash_received_by_mechanic", "paid"],
       default: "pending",
     },
     transactionId: {

@@ -34,7 +34,7 @@ export default function Contact() {
                 </div>
                 <div>
                    <strong className="contact-info-label">Corporate Office</strong>
-                   <span className="contact-info-value">Kathmandu Innovation Hub, Nepal</span>
+                   <span className="contact-info-value">Bhairahawa siddharthnagar, Nepal</span>
                 </div>
              </div>
 
@@ -44,7 +44,7 @@ export default function Contact() {
                 </div>
                 <div>
                    <strong className="contact-info-label">Hotline / Emergency Support</strong>
-                   <span className="contact-info-value">+977 1-4XXXXXX (24/7 Support)</span>
+                   <span className="contact-info-value">+977 9840963139 (24/7 Support)</span>
                 </div>
              </div>
 
@@ -54,7 +54,7 @@ export default function Contact() {
                 </div>
                 <div>
                    <strong className="contact-info-label">Email Support</strong>
-                   <span className="contact-info-value">admin@e-garage.com</span>
+                   <span className="contact-info-value">sujanpanthi092@gmail.com</span>
                 </div>
              </div>
            </div>
@@ -62,7 +62,7 @@ export default function Contact() {
 
         {/* Right Form Column */}
         <div className="glass-panel contact-form-card">
-          <h2 className="contact-form-title">Send a Ticket</h2>
+          <h2 className="contact-form-title">Send a Query via  Email  </h2>
           <form onSubmit={handleSubmit} className="contact-form">
             <div>
               <label className="contact-form-label">Full Name <span style={{color: 'red'}}>*</span></label>
@@ -78,7 +78,7 @@ export default function Contact() {
             </div>
             <button type="submit" className="btn-primary contact-submit-btn">
                <Send size={20} />
-               Submit Ticket Request
+               Submit  Request
             </button>
           </form>
         </div>

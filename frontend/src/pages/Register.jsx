@@ -95,6 +95,16 @@ export default function Register() {
           image: formData.image,
           certificate: formData.certificate
         });
+        
+        // Notify Garage Owner
+        const socket = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000');
+        socket.emit('notify_status_update', {
+          garageId: formData.garageId,
+          status: 'mechanic_registered',
+          message: `${formData.name} has registered as a mechanic and is pending your approval.`
+        });
+        setTimeout(() => socket.disconnect(), 1000);
+
         setRegisterStatus('success');
         setError(res.data.message); // Show success message
         setTimeout(() => {

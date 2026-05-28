@@ -43,7 +43,8 @@ export default function AppointmentPicker({ garage, onDateSelect }) {
     } else {
       onDateSelect(null);
     }
-  }, [selectedDateStr, selectedTimeStr, onDateSelect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDateStr, selectedTimeStr]);
 
   const getTodayAD = () => {
     const today = new Date();
