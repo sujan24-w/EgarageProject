@@ -267,14 +267,12 @@ export default function MyBookings() {
     return true;
   });
 
-  if (loading) return <div style={{padding: '4rem', textAlign: 'center'}}>Loading Dashboard...</div>;
-
-  return (
-    <div className="animate-fade-in" style={{ display: 'flex', minHeight: '80vh', flexDirection: 'row', flexWrap: 'wrap' }}>
+  if (loading) return <div style={{padding: '4rem', textAlign: 'center'}}>Loading Dashboard...</div>;  return (
+    <div className="animate-fade-in dashboard-container" style={{ display: 'flex', minHeight: '80vh', flexDirection: 'row', flexWrap: 'wrap' }}>
       
       {/* Sidebar Navigation - Clean, No Box */}
-      <div style={{ flex: '0 0 260px', padding: '2rem 2rem 2rem 0', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-        <h3 style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '1px', marginBottom: '1rem' }}>User Dashboard</h3>
+      <div className="dashboard-sidebar" style={{ flex: '0 0 260px', padding: '2rem 2rem 2rem 0', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+        <h3 className="dashboard-sidebar-title" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '1px', marginBottom: '1rem' }}>User Dashboard</h3>
         
         <button 
           onClick={() => setActiveTab('profile')}
@@ -315,7 +313,7 @@ export default function MyBookings() {
         >
           <Calendar size={18} /> Bookings & Rescues
         </button>
-
+ 
         <button 
           onClick={() => setActiveTab('billing')}
           style={{
@@ -336,9 +334,8 @@ export default function MyBookings() {
           <CreditCard size={18} /> Digital Receipts
         </button>
       </div>
-
-      {/* Main Content Area */}
-      <div style={{ flex: '1 1 500px', padding: '2rem 3rem' }}>
+ 
+      <div className="dashboard-content" style={{ flex: '1 1 500px', padding: '2rem 3rem' }}>
         
         {/* PROFILE TAB */}
         {activeTab === 'profile' && (

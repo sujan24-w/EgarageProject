@@ -116,3 +116,13 @@
   gap: 0.8rem;
   box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
 }
+
+@media (max-width: 768px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .contact-form-card {
+    padding: 1.5rem;
+  }
+}

@@ -1,8 +1,8 @@
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { ThemeContext } from './context/ThemeContext';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Menu, X } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -25,6 +25,7 @@ import MechanicProfile from './pages/MechanicProfile';
 function App() {
   const { user, loading, logout } = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (loading) return <div className="animate-fade-in" style={{padding: '2rem', textAlign: 'center'}}>Loading App...</div>;
 
@@ -32,31 +33,40 @@ function App() {
     <>
       <Toaster position="top-right" toastOptions={{ style: { background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' } }} />
       <nav className="nav-header">
-        <Link to={user?.role === 'garage_owner' ? '/garage-dashboard' : (user?.role === 'admin' ? '/admin-dashboard' : '/')} style={{ textDecoration: 'none' }}>
+        <Link to={user?.role === 'garage_owner' ? '/garage-dashboard' : (user?.role === 'admin' ? '/admin-dashboard' : '/')} style={{ textDecoration: 'none' }} onClick={() => setIsMenuOpen(false)}>
             <h2 style={{color: 'var(--accent-primary)', margin: 0}}>E-Garage</h2>
         </Link>
-        <div className="nav-links">
-            <Link to="/" className="nav-link">Home</Link>
-            <Link to="/about" className="nav-link">About</Link>
-            <Link to="/contact" className="nav-link">Contact Us</Link>
+        
+        <button 
+          className="nav-mobile-toggle"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        <div className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
+            <Link to="/" className="nav-link" onClick={() => setIsMenuOpen(false)}>Home</Link>
+            <Link to="/about" className="nav-link" onClick={() => setIsMenuOpen(false)}>About</Link>
+            <Link to="/contact" className="nav-link" onClick={() => setIsMenuOpen(false)}>Contact Us</Link>
             
             {user ? (
                 <>
-                    {user.role === 'garage_owner' && <Link to="/garage-dashboard" className="nav-link">Dashboard</Link>}
-                    {user.role === 'admin' && <Link to="/admin-dashboard" className="nav-link">Admin Panel</Link>}
-                    {user.role === 'user' && <Link to="/my-bookings" className="nav-link">Dashboard</Link>}
-                    {user.role === 'mechanic' && <Link to={`/mechanic/${user._id}`} className="nav-link">Dashboard</Link>}
+                    {user.role === 'garage_owner' && <Link to="/garage-dashboard" className="nav-link" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>}
+                    {user.role === 'admin' && <Link to="/admin-dashboard" className="nav-link" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>}
+                    {user.role === 'user' && <Link to="/my-bookings" className="nav-link" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>}
+                    {user.role === 'mechanic' && <Link to={`/mechanic/${user._id}`} className="nav-link" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>}
                     <span style={{color: 'var(--text-secondary)', marginLeft: '1rem'}}>Hi, {user.name}</span>
-                    <button onClick={logout} className="btn-secondary" style={{padding: '0.4rem 1rem'}}>Logout</button>
+                    <button onClick={() => { logout(); setIsMenuOpen(false); }} className="btn-secondary" style={{padding: '0.4rem 1rem'}}>Logout</button>
                 </>
             ) : (
                 <>
-                    <Link to="/login" className="nav-link">Login</Link>
-                    <Link to="/register" className="btn-primary" style={{textDecoration: 'none'}}>Register</Link>
+                    <Link to="/login" className="nav-link" onClick={() => setIsMenuOpen(false)}>Login</Link>
+                    <Link to="/register" className="btn-primary" style={{textDecoration: 'none'}} onClick={() => setIsMenuOpen(false)}>Register</Link>
                 </>
             )}
 
-            <button onClick={toggleTheme} className="btn-secondary" style={{padding: '0.4rem', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', marginLeft: '0.5rem'}}>
+            <button onClick={() => { toggleTheme(); setIsMenuOpen(false); }} className="btn-secondary" style={{padding: '0.4rem', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', marginLeft: '0.5rem'}}>
               {theme === 'dark' ? <Sun size={20} color="var(--accent-primary)" /> : <Moon size={20} color="var(--accent-primary)" />}
             </button>
         </div>

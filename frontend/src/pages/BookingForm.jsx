@@ -87,7 +87,7 @@ export default function BookingForm() {
         : "Appointment confirmed! View it in your dashboard.");
         
       // Notify the garage in real-time
-      const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
+      const socket = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000');
       socket.emit("notify_garage", {
         garageId,
         message: formPath === 'emergency' ? "🚨 New Emergency Rescue Request!" : "📅 New Standard Appointment Booked!",
@@ -166,21 +166,31 @@ export default function BookingForm() {
            </div>
 
            <div className="input-group" style={{background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)', marginBottom: '1.5rem'}}>
-             <label className="input-label" style={{color: '#ef4444'}}>Emergency Grid Coordinates</label>
-             <button type="button" className="btn-secondary" style={{width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', background: liveLocation ? '#10b981' : 'transparent', color: liveLocation ? 'white' : 'var(--text-primary)', borderColor: liveLocation ? '#10b981' : 'var(--border-color)'}} onClick={() => {
+              <label className="input-label" style={{color: '#ef4444'}}>Emergency Grid Coordinates</label>
+              <button type="button" className="btn-secondary" style={{width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', background: liveLocation ? '#10b981' : 'transparent', color: liveLocation ? 'white' : 'var(--text-primary)', borderColor: liveLocation ? '#10b981' : 'var(--border-color)'}} onClick={() => {
                setGeoLocating(true);
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => { setLiveLocation([pos.coords.longitude, pos.coords.latitude]); setGeoLocating(false); },
-                  (err) => { 
-                    alert('GPS failed/blocked. Defaulting to Kathmandu Center coordinates so you can test the dispatch!'); 
-                    setLiveLocation([85.3240, 27.7172]); 
-                    setGeoLocating(false); 
-                  }
-                );
-             }}>
-               {geoLocating ? 'Acquiring GPS Signal...' : (liveLocation ? '✓ GPS Coordinates Locked' : '📍 Upload My GPS Location')}
-             </button>
-           </div>
+                 navigator.geolocation.getCurrentPosition(
+                   (pos) => { setLiveLocation([pos.coords.longitude, pos.coords.latitude]); setGeoLocating(false); },
+                   (err) => { 
+                     alert('GPS failed/blocked. Defaulting to Kathmandu Center coordinates so you can test the dispatch!'); 
+                     setLiveLocation([85.3240, 27.7172]); 
+                     setGeoLocating(false); 
+                   }
+                 );
+              }}>
+                {geoLocating ? 'Acquiring GPS Signal...' : (liveLocation ? '✓ GPS Coordinates Locked' : '📍 Upload My GPS Location')}
+              </button>
+              
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Or select a test location preset:</span>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button type="button" className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', background: liveLocation && liveLocation[0] === 85.3240 ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: liveLocation && liveLocation[0] === 85.3240 ? '#10b981' : 'var(--text-primary)' }} onClick={() => setLiveLocation([85.3240, 27.7172])}>Kathmandu Center</button>
+                  <button type="button" className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', background: liveLocation && liveLocation[0] === 85.3150 ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: liveLocation && liveLocation[0] === 85.3150 ? '#10b981' : 'var(--text-primary)' }} onClick={() => setLiveLocation([85.3150, 27.6700])}>Patan Lalitpur</button>
+                  <button type="button" className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', background: liveLocation && liveLocation[0] === 85.4200 ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: liveLocation && liveLocation[0] === 85.4200 ? '#10b981' : 'var(--text-primary)' }} onClick={() => setLiveLocation([85.4200, 27.6700])}>Bhaktapur</button>
+                  <button type="button" className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', background: liveLocation && liveLocation[0] === 85.3500 ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: liveLocation && liveLocation[0] === 85.3500 ? '#10b981' : 'var(--text-primary)' }} onClick={() => setLiveLocation([85.3500, 27.7200])}>Chabahil</button>
+                </div>
+              </div>
+            </div>
 
            <div className="input-group">
              <label className="input-label">Briefly describe the emergency <span style={{color: 'red'}}>*</span></label>

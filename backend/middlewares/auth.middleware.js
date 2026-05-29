@@ -4,8 +4,8 @@ const User = require("../models/user.model");
 const isAuthenticated = async (req, res, next) => { 
   let token;
 
-  if (
-    req.headers.authorization &&
+  if ( 
+    req.headers.authorization && 
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
@@ -14,7 +14,7 @@ const isAuthenticated = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       req.user = await User.findById(decoded.userId).select("-password");
-
+  
       if (!req.user || !req.user.isActive) {
         return res.status(401).json({ message: "Not authorized, user not found or inactive" });
       }

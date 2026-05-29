@@ -54,7 +54,7 @@ export default function MechanicProfile({ mechanicIdProp }) {
         <div style={{ position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)', width: '400px', height: '400px', background: 'var(--accent-primary)', opacity: 0.05, filter: 'blur(80px)', borderRadius: '50%' }}></div>
         
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '800px', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '3.5rem', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+          <h1 style={{ fontSize: 'clamp(2rem, 6vw, 3.5rem)', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             {mechanic.name}
             {mechanic.isVerified && <CheckCircle size={32} color="var(--success-color)" fill="rgba(34, 197, 94, 0.1)" title="Verified Professional" />}
           </h1>
@@ -124,7 +124,7 @@ export default function MechanicProfile({ mechanicIdProp }) {
         <div style={{ display: 'flex', gap: '4rem', flexWrap: 'wrap' }}>
           
           {/* Left Column: Flowing Stats & Affiliation */}
-          <div style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+          <div style={{ flex: '1', minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
             
             <section>
               <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
@@ -181,7 +181,7 @@ export default function MechanicProfile({ mechanicIdProp }) {
           </div>
 
           {/* Right Column: Clean List Reviews */}
-          <div style={{ flex: '2', minWidth: '400px' }}>
+          <div style={{ flex: '2', minWidth: '280px' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--text-primary)', fontSize: '1.8rem', marginBottom: '2rem' }}>
               <MessageSquare size={28} color="var(--accent-primary)" /> Client Reviews
             </h3>

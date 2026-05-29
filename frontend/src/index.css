@@ -268,3 +268,179 @@ body.light-mode {
 .modal-close-btn:hover {
   color: var(--error-color);
 }
+
+/* --- MOBILE RESPONSIVENESS AND DASHBOARD CLASSES --- */
+
+/* Mobile navbar toggle button */
+.nav-mobile-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.nav-mobile-toggle:hover {
+  background: var(--bg-secondary);
+}
+
+/* Garage Details Responsive Layout */
+.garage-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.garage-hero {
+  height: 300px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.garage-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--bg-primary) 0%, rgba(0, 0, 0, 0.1) 100%);
+  transition: all 0.5s ease-in-out;
+}
+
+.garage-hero-content {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  right: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+  z-index: 5;
+}
+
+.garage-hero-title {
+  color: white;
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+  /* Dashboard Transformations */
+  .dashboard-container {
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+  }
+  
+  .dashboard-sidebar-title {
+    display: none !important;
+  }
+  
+  .dashboard-sidebar {
+    flex: 1 1 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 1rem 0 !important;
+    position: static !important; /* disable sticky sidebar on mobile */
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    gap: 0.5rem !important;
+  }
+  
+  .dashboard-sidebar::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome/Safari */
+  }
+  
+  .dashboard-sidebar button {
+    flex: 0 0 auto !important;
+    padding: 0.6rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .dashboard-content {
+    flex: 1 1 auto !important;
+    padding: 1rem 0 !important;
+  }
+  
+  /* Navbar Mobile Layout */
+  .nav-mobile-toggle {
+    display: flex !important;
+  }
+  
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem;
+    gap: 1.2rem;
+    align-items: stretch;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+  }
+  
+  .nav-links.open {
+    display: flex;
+  }
+  
+  .nav-links .nav-link, 
+  .nav-links span {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--glass-border);
+    width: 100%;
+  }
+  
+  .nav-links .btn-primary,
+  .nav-links .btn-secondary {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+  
+  /* Garage Details Responsive Grid & Hero */
+  .garage-details-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .garage-hero {
+    height: auto !important;
+    min-height: 220px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+  }
+  
+  .garage-hero-overlay {
+    background: rgba(0, 0, 0, 0.6) !important;
+  }
+  
+  .garage-hero-content {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    padding: 1.5rem 1rem !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.4)) !important;
+    width: 100% !important;
+  }
+  
+  .garage-hero-title {
+    font-size: 2rem !important;
+  }
+}

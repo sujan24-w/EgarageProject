@@ -65,22 +65,12 @@ export default function GarageDetails() {
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '4rem' }}>
       
       {/* Hero Banner */}
-      <div style={{ 
-        height: '300px', 
-        borderRadius: '16px', 
-        overflow: 'hidden', 
-        position: 'relative',
+      <div className="garage-hero" style={{ 
         backgroundImage: `url(${bgImage})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        marginBottom: '2rem',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+        backgroundPosition: 'center'
       }}>
-        <div style={{
-          position: 'absolute', inset: 0, 
-          background: 'linear-gradient(to top, var(--bg-primary) 0%, rgba(0,0,0,0.1) 100%)',
-          transition: 'all 0.5s ease-in-out'
-        }} />
+        <div className="garage-hero-overlay" />
 
         {images.length > 1 && (
           <>
@@ -92,10 +82,10 @@ export default function GarageDetails() {
           </>
         )}
 
-        <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', right: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="garage-hero-content">
           <div>
-            <h1 style={{ color: 'white', fontSize: '3rem', marginBottom: '0.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{garage.name}</h1>
-            <div style={{ display: 'flex', gap: '1rem', color: '#e2e8f0', fontSize: '1rem' }}>
+            <h1 className="garage-hero-title" style={{ color: 'white', marginBottom: '0.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{garage.name}</h1>
+            <div style={{ display: 'flex', gap: '1rem', color: '#e2e8f0', fontSize: '1rem', flexWrap: 'wrap' }}>
               <span style={{display: 'flex', alignItems: 'center', gap: '0.4rem'}}><MapPin size={18} /> {garage.location?.address}</span>
               <span style={{display: 'flex', alignItems: 'center', gap: '0.4rem'}}><Phone size={18} /> {garage.phone}</span>
             </div>
@@ -108,7 +98,7 @@ export default function GarageDetails() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '2rem' }}>
+      <div className="garage-details-grid">
         
         {/* Left Column: Details & Reviews */}
         <div>

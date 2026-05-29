@@ -2,6 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { apiUrl } from '../utils/config';
 import './Login.css';
 
 const ResetPassword = () => {
@@ -29,7 +30,6 @@ const ResetPassword = () => {
     setError('');
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const response = await axios.put(`${apiUrl}/auth/resetpassword/${token}`, { password });
       setMessage(response.data.message);
       setTimeout(() => {

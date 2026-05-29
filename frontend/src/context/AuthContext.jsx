@@ -1,6 +1,8 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -14,7 +16,6 @@ export const AuthProvider = ({ children }) => {
 
       if (token) {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
           const res = await axios.get(`${apiUrl}/auth/profile`, {
             headers: { Authorization: `Bearer ${token}` }
           });

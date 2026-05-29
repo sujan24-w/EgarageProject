@@ -5,6 +5,7 @@ import api from '../utils/api';
 import io from 'socket.io-client';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+
 import TrackingMap from '../components/TrackingMap';
 import Spinner from '../components/Spinner';
 import toast from 'react-hot-toast';
@@ -430,12 +431,12 @@ export default function GarageDashboard() {
   const standardBookings = bookings.filter(b => b.type === 'standard' && ['pending', 'accepted', 'assigned', 'dispatched', 'arrived', 'in-progress', 'maintenance-completed', 'work-accepted'].includes(b.status));
 
   return (
-    <div  className="animate-fade-in" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+    <div className="animate-fade-in dashboard-container" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
      
-      <div style={{ flex: '0 0 260px', padding: '2rem 2rem 2rem 0', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'sticky', top: '0' }}>
-        <h2 style={{color: 'var(--text-primary)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem'}}>Garage Pro</h2>
+      <div className="dashboard-sidebar" style={{ flex: '0 0 260px', padding: '2rem 2rem 2rem 0', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'sticky', top: '0' }}>
+        <h2 className="dashboard-sidebar-title" style={{color: 'var(--text-primary)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem'}}>Garage Pro</h2>
         <button className={tab === 'overview' ? 'btn-primary' : 'btn-secondary'} style={{textAlign: 'left', width: '100%', padding: '0.8rem 1rem', border: 'none', background: tab === 'overview' ? 'var(--bg-secondary)' : 'transparent', color: tab === 'overview' ? 'var(--accent-primary)' : 'var(--text-primary)', fontWeight: tab === 'overview' ? '600' : '400'}} onClick={() => setTab('overview')}>Overview</button>
-        <button className={tab === 'bookings' ? 'btn-primary' : 'btn-secondary'} style={{textAlign: 'left', width: '100%', padding: '0.8rem 1rem', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: tab === 'bookings' ? 'var(--bg-secondary)' : 'transparent', color: tab === 'bookings' ? 'var(--accent-primary)' : 'var(--text-primary)', fontWeight: tab === 'bookings' ? '600' : '400'}} onClick={() => setTab('bookings')}>
+        <button className={tab === 'bookings' ? 'btn-primary' : 'btn-secondary'} style={{textAlign: 'left', width: '100%', padding: '0.8rem 1rem', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: tab === 'bookings' ? 'var(--bg-secondary)' : 'transparent', color: tab === 'bookings' ? 'var(--accent-primary)' : 'var(--text-primary)', fontWeight: tab === 'bookings' ? '600' : '400'} } onClick={() => setTab('bookings')}>
           <span>Live Action Requests</span>
           <div style={{display: 'flex', gap: '0.3rem'}}>
             {emergencyBookings.filter(b => b.status === 'pending').length > 0 && (
@@ -458,7 +459,7 @@ export default function GarageDashboard() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: '1 1 500px', padding: '2rem 3rem' }}>
+      <div className="dashboard-content" style={{ flex: '1 1 500px', padding: '2rem 3rem' }}>
         {tab === 'overview' && (
           <div className="animate-fade-in" style={{ maxWidth: '1000px' }}>
             {!myGarage ? (
